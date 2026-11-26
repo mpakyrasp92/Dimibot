@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1440">
+<title>DimiBot</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+  <!-- ΣΚΗΝΗ: ο DimiBot είναι πάντα εδώ -->
+  <section class="stage" data-stage id="stage">
+    <div class="sky" aria-hidden="true"><i></i><i></i><i></i><b class="pl1"></b><b class="pl2"></b></div>
+    <div class="hud">
+      <div class="lvl" id="hudLvl" aria-label="Επίπεδο">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="20" class="ringBg"/><circle cx="24" cy="24" r="20" class="ring" id="hudRing"/></svg>
+        <b id="hudLvlN">1</b>
+      </div>
+      <div class="pill" id="hudStars"><span class="emo">⭐</span><b id="hudStarsN">0</b></div>
+      <div class="pill" id="hudStreak"><span class="emo">🔥</span><b id="hudStreakN">0</b></div>
+      <div class="grow"></div>
+      <span class="chip" id="chipAi">AI</span>
+      <button class="stop" id="stopBtn" aria-label="STOP – σταμάτα τα πάντα">STOP</button>
+    </div>
+    <div class="micWrap">
+      <button class="mic" id="micBtn" aria-label="Μίλα μου">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>
+      </button>
+      <span class="micLabel" id="micLabel">Μίλα μου</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <!-- ΒΑΣΗ -->
+    <div class="view" id="v-home">
+      <h1 class="hello" id="hello">Καλημέρα!</h1>
+      <div class="mCard" id="homeMission">
+        <div class="mTop"><span class="chip gold">Αποστολή της ημέρας</span><span class="note" id="homeMNote"></span></div>
+        <div class="mini" id="homePlanets"></div>
+        <button class="go big" id="homeGo">🚀 Ξεκίνα την αποστολή</button>
+        <button class="ghost" id="homePractice" hidden>Εξάσκηση</button>
+      </div>
+      <button class="rStrip" id="homeRoutines"><span class="chip">Οι ρουτίνες μου</span><span class="rIcons" id="homeRIcons"></span></button>
+      <div class="fun" id="fun"></div>
+      <div class="goal" id="goal" hidden><div class="gTxt"><span class="emo">🎯</span><span id="goalTxt"></span></div><div class="bar"><i id="goalBar"></i></div></div>
+    </div>
+
+    <!-- ΑΠΟΣΤΟΛΗ -->
+    <div class="view mission" id="v-mission" hidden>
+      <div class="mHead"><div class="mPlanets" id="mPlanets"></div><div class="mSub"><b id="mTitle"></b><span class="dots" id="mDots"></span></div></div>
+      <div class="mArea" id="mArea"></div>
+      <div class="mFoot"><button class="ghost" id="mAgain">🔊 Άκου ξανά</button><button class="ghost" id="mPause">⏸ Διάλειμμα</button></div>
+    </div>
+
+    <!-- ΡΟΥΤΙΝΕΣ -->
+    <div class="view" id="v-routines" hidden>
+      <h2 class="vt">Οι ρουτίνες μου</h2>
+      <div id="rBoxHome"></div>
+      <div class="row"><button class="ghost" data-back>← Πίσω</button></div>
+    </div>
+
+    <!-- ΠΑΙΧΝΙΔΙΑ -->
+    <div class="view" id="v-games" hidden>
+      <div class="modes">
+        <button class="mode" data-g="workshop" aria-pressed="true"><span class="emo">🧩</span>Εργαστήρι</button>
+        <button class="mode" data-g="maze" aria-pressed="false"><span class="emo">🗺️</span>Λαβύρινθος</button>
+        <button class="mode" data-g="simon" aria-pressed="false"><span class="emo">🧠</span>Μνήμη</button>
+      </div>
+      <div class="game" id="g-workshop">
+        <p class="note">Το πρόγραμμά σου:</p>
+        <div class="train" id="train" aria-label="Το πρόγραμμα"></div>
+        <div class="row"><button class="go" id="trainGo">▶ Πάμε!</button><button class="ghost" id="trainClear">Άδειασε</button></div>
+        <div class="cards" id="cards"></div>
+      </div>
+      <div class="game" id="g-maze" hidden>
+        <div class="lvlRow"><b id="lvlTxt">Πίστα 1</b></div>
+        <div class="board" id="board"></div>
+        <div class="prog" id="prog"></div>
+        <div class="arrows" id="arrows"></div>
+        <div class="row"><button class="go" id="mazeRun">▶ Πάμε!</button><button class="ghost" id="mazeUndo">⌫ Σβήσε</button><button class="ghost" id="mazeReset">↺ Από την αρχή</button></div>
+      </div>
+      <div class="game" id="g-simon" hidden>
+        <div class="lvlRow"><b id="simonLvl">Πάτα «Ξεκίνα»</b><b id="simonBest">Ρεκόρ: 0</b></div>
+        <div class="pads" id="pads"></div>
+        <div class="row"><button class="go" id="simonGo">Ξεκίνα</button></div>
+      </div>
+    </div>
+
+    <!-- ΓΚΑΡΑΖ -->
+    <div class="view" id="v-garage" hidden>
+      <div class="gHead"><h2 class="vt">Γκαράζ αναβαθμίσεων</h2><span class="pill"><span class="emo">⭐</span><b id="gStars">0</b></span></div>
+      <div class="gTabs" id="gTabs"></div>
+      <div class="gGrid" id="gGrid"></div>
+    </div>
+
+    <!-- ΚΑΜΕΡΑ -->
+    <div class="view" id="v-camera" hidden>
+      <h2 class="vt">Τι είναι αυτό;</h2>
+      <div class="cam"><video id="video" playsinline muted></video><canvas id="snap" hidden></canvas><div class="camOff" id="camOff">Η κάμερα είναι κλειστή</div></div>
+      <div class="row"><button class="go" id="camShot">📸 Τι είναι αυτό;</button><button class="ghost" id="camFlip">🔄 Γύρνα</button></div>
+      <p class="note">Η φωτογραφία στέλνεται μόνο για να απαντήσει ο DimiBot και δεν αποθηκεύεται.</p>
+    </div>
+
+    <!-- ΓΟΝΙΚΟΣ ΧΩΡΟΣ -->
+    <div class="view parent" id="v-parent" hidden>
+      <div class="pHead"><h2 class="vt">Γονικός χώρος</h2><button class="go" id="pLock">🔒 Κλείδωμα</button></div>
+      <details class="card" open>
+        <summary>Πρόοδος του παιδιού</summary>
+        <div id="pProgress"></div>
+      </details>
+      <details class="card" open>
+        <summary>Ρουτίνες και εγκρίσεις</summary>
+        <label class="sw2"><input type="checkbox" id="pApprove"> Οι ρουτίνες χρειάζονται επιβεβαίωση από γονιό</label>
+        <div id="pPendR"></div>
+        <div id="pRoutines"></div>
+        <div class="row"><input id="pREmoji" class="small" maxlength="4" placeholder="🙂" aria-label="Εικονίδιο"><input id="pRLabel" placeholder="π.χ. Τάισα το ψαράκι"><select id="pRWhen"><option value="morning">Πρωί</option><option value="day" selected>Μέρα</option><option value="evening">Βράδυ</option></select><button class="ghost" id="pRAdd">Πρόσθεσε</button></div>
+      </details>
+      <details class="card">
+        <summary>Αποστολή και στόχος</summary>
+        <p class="note">Ποιοι «πλανήτες» μπαίνουν στην ημερήσια αποστολή:</p>
+        <div class="row wrap" id="pCats"></div>
+        <label>Στόχος με πραγματική ανταμοιβή: αστέρια <input id="pGoalN" type="number" min="5" max="500" step="5" class="small"></label>
+        <label>Ανταμοιβή (π.χ. «Βόλτα στο λούνα παρκ») <input id="pGoalT" placeholder="Άφησέ το κενό αν δεν θέλεις"></label>
+        <div class="row"><button class="ghost" id="pGoalReset">Ο στόχος επιτεύχθηκε – ξεκίνα από την αρχή</button></div>
+      </details>
+      <details class="card">
+        <summary>Χρόνος και όνομα</summary>
+        <label>Όνομα παιδιού, όπως το φωνάζουμε (π.χ. Δημήτρη) <input id="pName" autocomplete="off"></label>
+        <label>Λεπτά οθόνης την ημέρα <input id="pMinutes" type="number" min="5" max="240" step="5" class="small"></label>
+        <p class="note" id="pUsed"></p>
+        <div class="row"><button class="ghost" id="pResetToday">Μηδένισε τον σημερινό χρόνο</button><button class="ghost" id="pNewPin">Άλλαξε PIN</button></div>
+      </details>
+      <details class="card">
+        <summary>Τεχνητή νοημοσύνη</summary>
+        <label>Πάροχος <select id="pProvider"><option value="gemini">Google Gemini</option><option value="offline">Χωρίς internet (έτοιμες απαντήσεις)</option></select></label>
+        <label>Κλειδί API <input id="pKey" type="password" autocomplete="off" placeholder="Επικόλλησε το κλειδί από το Google AI Studio"></label>
+        <label>Μοντέλο <input id="pModel" autocomplete="off"></label>
+        <div class="row"><button class="ghost" id="pTest">Δοκιμή σύνδεσης</button><span id="pTestOut" class="note"></span></div>
+        <label class="sw2"><input type="checkbox" id="pAi"> Συζήτηση με AI ενεργή</label>
+        <label class="sw2"><input type="checkbox" id="pCam"> «Τι είναι αυτό;» (κάμερα) ενεργό</label>
+      </details>
+      <details class="card">
+        <summary>Φωνή</summary>
+        <label>Ύψος φωνής <input id="pPitch" type="range" min="0.8" max="2" step="0.1"></label>
+        <label>Ταχύτητα <input id="pRate" type="range" min="0.7" max="1.4" step="0.05"></label>
+        <label class="sw2"><input type="checkbox" id="pKeep"> Κράτα το Bluetooth ηχείο ξύπνιο</label>
+        <div class="row"><button class="ghost" id="pVoiceTest">Άκου τη φωνή</button><span id="pVoiceName" class="note"></span></div>
+      </details>
+      <details class="card">
+        <summary>Το τετράδιο του DimiBot (μνήμη)</summary>
+        <p class="note">Ό,τι θυμάται ο DimiBot. Τίποτα δεν αποθηκεύεται χωρίς την έγκρισή σου. Οι συζητήσεις δεν αποθηκεύονται.</p>
+        <div id="pPending"></div>
+        <div id="pMem"></div>
+        <div class="row"><input id="pMemK" placeholder="π.χ. Αγαπημένο παιχνίδι"><input id="pMemV" placeholder="π.χ. τα τουβλάκια"><button class="ghost" id="pMemAdd">Πρόσθεσε</button></div>
+      </details>
+      <details class="card">
+        <summary>Σήμερα</summary>
+        <div id="pLog" class="log"></div>
+      </details>
+      <div class="row"><button class="ghost danger" id="pResetAll">Μηδενισμός προόδου</button></div>
+    </div>
+
+    <!-- ΤΕΛΟΣ ΧΡΟΝΟΥ -->
+    <div class="view lock" id="v-lock" hidden>
+      <div class="emo huge">😴</div>
+      <h2>Ο DimiBot φορτίζει</h2>
+      <p>Παίξαμε πολύ σήμερα! Τα λέμε αύριο.</p>
+      <button class="ghost" data-open-parent>Γονέας</button>
+    </div>
+  </section>
+
+  <nav class="tabs" aria-label="Οθόνες">
+    <button data-v="home" aria-current="page"><span class="emo">🚀</span><span>Βάση</span></button>
+    <button data-v="games"><span class="emo">🎮</span><span>Παιχνίδια</span></button>
+    <button data-v="garage"><span class="emo">🔧</span><span>Γκαράζ</span></button>
+    <button data-v="camera"><span class="emo">📷</span><span>Κάμερα</span></button>
+    <button data-open-parent><span class="emo">🔒</span><span>Γονέας</span></button>
+  </nav>
+</div>
+
+<!-- PIN -->
+<div class="modal" id="pinModal" hidden>
+  <div class="pinBox">
+    <h2 id="pinTitle">PIN γονέα</h2>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="PIN">
+    <p class="note" id="pinMsg"></p>
+    <div class="row center"><button class="go" id="pinOk">ΟΚ</button><button class="ghost" id="pinCancel">Άκυρο</button></div>
+  </div>
+</div>
+
+<!-- ΝΕΟ ΕΠΙΠΕΔΟ -->
+<div class="modal" id="lvlModal" hidden>
+  <div class="lvlBox">
+    <div class="burst" aria-hidden="true"></div>
+    <p class="chip gold">ΝΕΟ ΕΠΙΠΕΔΟ</p>
+    <div class="lvlBig" id="lvlBig">2</div>
+    <p id="lvlUnlocks"></p>
+    <button class="go" id="lvlOk">Τέλεια!</button>
+  </div>
+</div>
+
+<script src="js/store.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/progress.js"></script>
+<script src="js/content.js"></script>
+<script src="js/robot.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/mission.js"></script>
+<script src="js/garage.js"></script>
+<script src="js/play.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
