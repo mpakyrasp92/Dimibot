@@ -20,6 +20,10 @@ window.DB = window.DB || {};
 
   const DEFAULTS = {
     provider: 'gemini',
+    provider2: '',
+    oaPreset: 'groq', oaKey: '', oaModel: '', oaBase: '',
+    claudeKey: '', claudeModel: '',
+    quickLocal: true,
     apiKey: '',
     model: 'gemini-3.8-flash',
     aiOn: true,

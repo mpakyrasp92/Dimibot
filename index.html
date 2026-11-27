@@ -98,10 +98,15 @@
       </div>
       <div class="game" id="g-maze" hidden>
         <div class="lvlRow"><b id="lvlTxt">Πίστα 1</b></div>
-        <div class="board" id="board"></div>
-        <div class="prog" id="prog"></div>
-        <div class="arrows" id="arrows"></div>
-        <div class="row"><button class="go" id="mazeRun">▶ Πάμε!</button><button class="ghost" id="mazeUndo">⌫ Σβήσε</button><button class="ghost" id="mazeReset">↺ Από την αρχή</button></div>
+        <div class="mazeWrap">
+          <div class="board" id="board"></div>
+          <div class="mazeCtl">
+            <div class="arrows" id="arrows"></div>
+            <div class="prog" id="prog"></div>
+            <button class="go" id="mazeRun">▶ Πάμε!</button>
+            <div class="row"><button class="ghost sm" id="mazeUndo">⌫ Σβήσε</button><button class="ghost sm" id="mazeReset">↺ Αρχή</button></div>
+          </div>
+        </div>
       </div>
       <div class="game free" id="g-pairs" hidden></div>
       <div class="game free" id="g-whack" hidden></div>
@@ -199,10 +204,36 @@
       </details>
       <details class="card">
         <summary>Τεχνητή νοημοσύνη</summary>
-        <label>Πάροχος <select id="pProvider"><option value="gemini">Google Gemini</option><option value="offline">Χωρίς internet (έτοιμες απαντήσεις)</option></select></label>
-        <label>Κλειδί API <input id="pKey" type="password" autocomplete="off" placeholder="Επικόλλησε το κλειδί από το Google AI Studio"></label>
-        <label>Μοντέλο <input id="pModel" autocomplete="off"></label>
-        <div class="row"><button class="ghost" id="pTest">Δοκιμή σύνδεσης</button><span id="pTestOut" class="note"></span></div>
+        <p class="note">Βάλε δύο «μυαλά»: αν το πρώτο κολλήσει ή αργήσει, απαντάει αυτόματα το δεύτερο, και αν πέσουν και τα δύο, το «τοπικό μυαλό» του tablet. Τα κλειδιά μένουν μόνο σε αυτό το tablet.</p>
+        <label>Κύριο AI <select id="pProvider"><option value="oa">Groq (δωρεάν, πολύ γρήγορο) / OpenAI</option><option value="gemini">Google Gemini</option><option value="claude">Anthropic Claude (πληρωμένο)</option><option value="offline">Μόνο τοπικό μυαλό (χωρίς internet)</option></select></label>
+        <label>Εφεδρικό AI <select id="pProvider2"><option value="">Κανένα</option><option value="gemini">Google Gemini</option><option value="oa">Groq / OpenAI</option><option value="claude">Anthropic Claude</option></select></label>
+        <div id="pBoxOa" class="sub">
+          <b>Groq / OpenAI-συμβατό</b>
+          <label>Υπηρεσία <select id="pOaPreset"><option value="groq">Groq (δωρεάν κλειδί από console.groq.com/keys)</option><option value="openai">OpenAI</option><option value="openrouter">OpenRouter</option><option value="custom">Άλλη (δική μου διεύθυνση)</option></select></label>
+          <label>Κλειδί <input id="pOaKey" type="password" autocomplete="off" placeholder="gsk_… (Groq)"></label>
+          <label>Μοντέλο <input id="pOaModel" autocomplete="off" placeholder="openai/gpt-oss-120b"></label>
+          <label id="pOaBaseL">Διεύθυνση (base URL) <input id="pOaBase" autocomplete="off" placeholder="https://…/v1"></label>
+          <div class="row"><button class="ghost" data-test="oa">Δοκιμή</button><span class="note" data-out="oa"></span></div>
+        </div>
+        <div id="pBoxGemini" class="sub">
+          <b>Google Gemini</b> <span class="note">(χρειάζεται και για την παιδική φωνή και την κάμερα)</span>
+          <label>Κλειδί <input id="pKey" type="password" autocomplete="off" placeholder="Επικόλλησε το κλειδί από το Google AI Studio"></label>
+          <label>Μοντέλο <input id="pModel" autocomplete="off"></label>
+          <div class="row"><button class="ghost" data-test="gemini">Δοκιμή</button><span class="note" data-out="gemini"></span></div>
+        </div>
+        <div id="pBoxClaude" class="sub">
+          <b>Anthropic Claude</b>
+          <label>Κλειδί <input id="pClKey" type="password" autocomplete="off" placeholder="sk-ant-…"></label>
+          <label>Μοντέλο <input id="pClModel" autocomplete="off" placeholder="claude-haiku-4-5"></label>
+          <div class="row"><button class="ghost" data-test="claude">Δοκιμή</button><span class="note" data-out="claude"></span></div>
+        </div>
+        <div class="sub">
+          <b>🧠 Τοπικό μυαλό (απαντά αμέσως)</b>
+          <p class="note">Το AI φτιάχνει μία φορά ~100 έτοιμες απαντήσεις για τον Δημήτρη (με βάση τον φάκελο, το τετράδιο και την ομάδα). Μετά, στις συνηθισμένες ερωτήσεις ο DimiBot απαντά αμέσως, χωρίς internet. Ξαναπάτησέ το όταν αλλάξεις τον φάκελο.</p>
+          <label class="sw2"><input type="checkbox" id="pQuick"> Γρήγορες τοπικές απαντήσεις όταν ταιριάζουν</label>
+          <div class="row"><button class="ghost" id="pBrainBuild">🧠 Φτιάξε έτοιμες απαντήσεις</button><button class="ghost sm" id="pBrainClear">Σβήσ' τες</button></div>
+          <span id="pBrainInfo" class="note"></span>
+        </div>
         <label class="sw2"><input type="checkbox" id="pAi"> Συζήτηση με AI ενεργή</label>
         <label class="sw2"><input type="checkbox" id="pCam"> «Τι είναι αυτό;» (κάμερα) ενεργό</label>
       </details>

@@ -224,7 +224,7 @@ window.DB = window.DB || {};
       const act = await new Promise(r => { $('#sFound').onclick = () => r('found'); $('#sSkip').onclick = () => r('skip'); });
       if (!live()) { stopCam(); return null; }
       if (act === 'skip') { stopCam(); await say('Δεν πειράζει! Θα το βρούμε την επόμενη φορά!'); return true; }
-      if (!camOk || DB.ai.current().name !== 'Google Gemini') { stopCam(); V.sfx.right(); await say('Τέλεια! Το βρήκες! Είσαι αληθινός εξερευνητής!', 'CHEER'); return true; }
+      if (!camOk || !DB.ai.canSee()) { stopCam(); V.sfx.right(); await say('Τέλεια! Το βρήκες! Είσαι αληθινός εξερευνητής!', 'CHEER'); return true; }
       const v = $('#sVid'), c = $('#sSnap'), w = 512, h = Math.round(512 * (v.videoHeight || 384) / (v.videoWidth || 512));
       c.width = w; c.height = h; c.getContext('2d').drawImage(v, 0, 0, w, h);
       R().eyes('focus'); R().setBubble('Σαρώνω… σαρώνω…');

@@ -211,7 +211,31 @@ window.DB = window.DB || {};
 
   /* ---------- Γονικός χώρος ---------- */
   const bindVal = (id, key, conv = x => x, after) => $(id).addEventListener('change', e => { S[key] = conv(e.target.type === 'checkbox' ? e.target.checked : e.target.value); S.save(); after && after(); });
-  bindVal('#pProvider', 'provider', x => x, chips); bindVal('#pKey', 'apiKey', x => x.trim(), chips); bindVal('#pModel', 'model', x => x.trim() || 'gemini-3.8-flash');
+  bindVal('#pProvider', 'provider', x => x, aiBoxes); bindVal('#pProvider2', 'provider2', x => x, aiBoxes); bindVal('#pKey', 'apiKey', x => x.trim(), chips); bindVal('#pModel', 'model', x => x.trim() || 'gemini-3.8-flash');
+  bindVal('#pOaPreset', 'oaPreset', x => x, () => { S.oaModel = ''; S.oaBase = ''; S.save(); aiBoxes(); }); bindVal('#pOaKey', 'oaKey', x => x.trim(), chips); bindVal('#pOaModel', 'oaModel', x => x.trim()); bindVal('#pOaBase', 'oaBase', x => x.trim());
+  bindVal('#pClKey', 'claudeKey', x => x.trim(), chips); bindVal('#pClModel', 'claudeModel', x => x.trim()); bindVal('#pQuick', 'quickLocal');
+  function aiBoxes() {
+    const used = [S.provider, S.provider2];
+    $('#pProvider').value = S.provider; $('#pProvider2').value = S.provider2 || '';
+    $('#pBoxOa').hidden = !used.includes('oa'); $('#pBoxClaude').hidden = !used.includes('claude');
+    const pr = A.OA_PRESETS[S.oaPreset || 'groq'] || A.OA_PRESETS.groq;
+    $('#pOaPreset').value = S.oaPreset || 'groq'; $('#pOaKey').value = S.oaKey || ''; $('#pOaModel').value = S.oaModel || ''; $('#pOaModel').placeholder = pr.model || 'όνομα μοντέλου';
+    $('#pOaBase').value = S.oaBase || ''; $('#pOaBase').placeholder = pr.base || 'https://…/v1'; $('#pOaBaseL').hidden = (S.oaPreset || 'groq') !== 'custom' && !S.oaBase;
+    $('#pClKey').value = S.claudeKey || ''; $('#pClModel').value = S.claudeModel || ''; $('#pQuick').checked = S.quickLocal !== false;
+    brainInfo(); chips();
+  }
+  function brainInfo() { const n = A.brainSize(); $('#pBrainInfo').textContent = n ? `Έχει ${n} έτοιμες απαντήσεις φτιαγμένες για τον ${S.childName}, συν τις βασικές.` : 'Έχει μόνο τις βασικές έτοιμες απαντήσεις.'; }
+  document.querySelectorAll('[data-test]').forEach(b => b.addEventListener('click', async () => {
+    const id = b.dataset.test, out = document.querySelector(`[data-out="${id}"]`); out.textContent = 'Δοκιμή…';
+    try { out.textContent = '✓ ' + await A.test(id); } catch (e) { out.textContent = '✗ ' + e.message; }
+  }));
+  $('#pBrainBuild').addEventListener('click', async () => {
+    const b = $('#pBrainBuild'); b.disabled = true;
+    try { const n = await A.buildBrain(t => { $('#pBrainInfo').textContent = t; }); $('#pBrainInfo').textContent = `Έτοιμο! Έφτιαξα ${n} απαντήσεις. Τώρα απαντά αμέσως στα συνηθισμένα.`; }
+    catch (e) { $('#pBrainInfo').textContent = 'Δεν τα κατάφερα: ' + e.message; }
+    b.disabled = false;
+  });
+  $('#pBrainClear').addEventListener('click', () => { A.clearBrain(); brainInfo(); });
   bindVal('#pAi', 'aiOn', x => x, chips); bindVal('#pCam', 'camOn'); bindVal('#pPitch', 'pitch', Number); bindVal('#pRate', 'rate', Number);
   bindVal('#pName', 'childName', x => x.trim() || 'Δημήτρη'); bindVal('#pMinutes', 'dailyMinutes', x => Math.max(5, +x || 45));
   bindVal('#pApprove', 'approve'); bindVal('#pTeam', 'teamName', x => x.trim() || 'DimiBots'); bindVal('#pJersey', 'jersey', x => Math.max(0, Math.min(99, parseInt(x) || 0)), () => R.applyLook()); bindVal('#pSongs', 'songs'); bindVal('#pMaxM', 'maxMissions', x => Math.max(1, Math.min(5, +x || 5)));
@@ -230,11 +254,6 @@ window.DB = window.DB || {};
     $('#pTtsInfo').textContent = S.ttsEngine === 'device' ? 'Μιλάει με τη φωνή του tablet.' : !S.apiKey ? 'Χρειάζεται κλειδί Gemini (κάρτα «Τεχνητή νοημοσύνη»). Μέχρι τότε μιλάει με τη φωνή του tablet.'
       : st.off && Date.now() < st.off ? 'Τελείωσε προσωρινά το δωρεάν όριο φωνής Gemini· μιλάει με τη φωνή του tablet και ξαναδοκιμάζει σε λίγο (το όριο μηδενίζεται καθημερινά γύρω στις 10:00).' : st.err ? 'Τελευταίο πρόβλημα: ' + st.err : st.n ? `Φωνή Gemini: OK (τελευταία φράση σε ${(st.ms / 1000).toFixed(1)} δευτ.)` : 'Πάτα «Άκου τη φωνή» για δοκιμή.';
   }
-  $('#pTest').addEventListener('click', async () => {
-    $('#pTestOut').textContent = 'Δοκιμή…';
-    try { const t = await A.test(); $('#pTestOut').textContent = 'Λειτουργεί: «' + t + '»'; }
-    catch (e) { $('#pTestOut').textContent = 'Σφάλμα: ' + e.message; }
-  });
   $('#pResetToday').addEventListener('click', () => { DB.usage.reset(); fillParent(); });
   $('#pNewPin').addEventListener('click', () => { S.pin = ''; S.save(); askPin(() => show('parent')); });
   $('#pLock').addEventListener('click', () => show('home'));
@@ -321,7 +340,7 @@ window.DB = window.DB || {};
   const CAT_N = { routine: 'Ρουτίνες', letters: 'Γράμματα & αριθμοί', english: 'Αγγλικά', world: 'Κόσμος & σκέψη' };
   $('#pCats').addEventListener('change', e => { const k = e.target.dataset.cat; if (k) { S.cats[k] = e.target.checked; S.save(); } });
   function fillParent() {
-    $('#pProvider').value = S.provider; $('#pKey').value = S.apiKey; $('#pModel').value = S.model;
+    aiBoxes(); $('#pKey').value = S.apiKey; $('#pModel').value = S.model;
     $('#pAi').checked = S.aiOn; $('#pCam').checked = S.camOn; $('#pPitch').value = S.pitch; $('#pRate').value = S.rate; $('#pKeep').checked = S.keepAlive;
     $('#pName').value = S.childName; $('#pMinutes').value = S.dailyMinutes; $('#pApprove').checked = S.approve;
     $('#pGoalN').value = S.goal.stars; $('#pProfile').value = S.profile || ''; $('#pGoals').value = S.goals || ''; $('#pToday').value = S.todayNote && S.todayNote.d === DB.store.today() ? S.todayNote.t : ''; profInfo(); $('#pTeam').value = S.teamName || 'DimiBots'; $('#pJersey').value = S.jersey == null ? 7 : S.jersey; $('#pSongs').checked = S.songs !== false; fillSongs(); $('#pMaxM').value = S.maxMissions || 5; $('#pGoalT').value = S.goal.text || '';
@@ -330,7 +349,7 @@ window.DB = window.DB || {};
     $('#pVoiceName').textContent = 'Φωνές tablet: ' + V.voiceName(); fillVoice();
     const lines = DB.log.todayLines(); $('#pLog').innerHTML = lines.length ? lines.map(esc).join('<br>') : 'Τίποτα ακόμα σήμερα.';
     const st = DB.ai_stats || {};
-    if (st.last) $('#pLog').innerHTML += `<br><span class="note">Τελευταία απάντηση AI: ${esc(st.last)}, πρώτη λέξη σε ${(st.ms / 1000).toFixed(1)} δευτ.</span>`;
+    if (st.last) $('#pLog').innerHTML += `<br><span class="note">Τελευταία απάντηση AI: ${esc(st.last)} (${esc(st.provider || '')}), πρώτη λέξη σε ${(st.ms / 1000).toFixed(1)} δευτ.</span>`;
     if (A.lastError) $('#pLog').innerHTML += `<br><span class="note">Τελευταίο σφάλμα AI: ${esc(A.lastError)}</span>`;
     fillProgress(); fillRoutines(); fillMemory();
   }
@@ -349,9 +368,9 @@ window.DB = window.DB || {};
   function hudAi() { chips(); }
   function chips() {
     const p = A.current(), el = $('#chipAi');
-    const ok = p.name === 'Google Gemini';
+    const ok = p.id !== 'offline';
     const st = DB.ai_stats || {};
-    el.textContent = ok ? (st.err ? 'AI ⚠️' : 'AI ✓' + (st.ms ? ' ' + (st.ms / 1000).toFixed(1) + 'δ' : '')) : (S.provider === 'gemini' && !S.apiKey ? 'AI: χωρίς κλειδί' : 'AI: offline');
+    el.textContent = ok ? (st.err ? 'AI ⚠️' : 'AI ✓' + (st.ms ? ' ' + (st.ms / 1000).toFixed(1) + 'δ' : '')) : (S.provider !== 'offline' && S.aiOn && navigator.onLine !== false ? 'AI: χωρίς κλειδί' : 'AI: τοπικό');
     el.className = 'chip ' + (ok && !st.err ? 'ok' : 'warn');
   }
   window.addEventListener('online', chips); window.addEventListener('offline', chips);
