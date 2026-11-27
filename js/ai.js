@@ -64,26 +64,39 @@ ${facts}
     if (THINK[thinkIdx]) gc.thinkingConfig = THINK[thinkIdx];
     return JSON.stringify({ systemInstruction: { parts: [{ text: sys || systemPrompt() }] }, contents, safetySettings: SAFETY, generationConfig: gc });
   }
-  async function post(url, contents, max, signal, sys) {
-    for (;;) {
-      const r = await fetch(url, { method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': S.apiKey }, body: body(contents, max, sys) });
-      if (r.ok) return r;
-      const data = await r.json().catch(() => ({}));
-      const msg = (data.error && data.error.message) || ('HTTP ' + r.status);
-      if (r.status === 400 && /think/i.test(msg) && thinkIdx < THINK.length - 1) { thinkIdx++; continue; }
-      if (r.status === 429) throw new Error('Τελείωσε το δωρεάν όριο του Gemini για τώρα (429). ' + msg);
-      if (r.status === 403) throw new Error('Το κλειδί απορρίφθηκε (403) – έλεγξε τον περιορισμό ιστοσελίδας. ' + msg);
-      throw new Error(msg);
+  /* Αν το μοντέλο είναι «πολυάσχολο» (503 / high demand) ή δεν υπάρχει, δοκιμάζει αυτόματα το επόμενο. */
+  const FALLBACK = ['gemini-3.8-flash', 'gemini-3.8-flash-lite', 'gemini-3.6-flash', 'gemini-2.5-flash'];
+  let goodModel = null; // το τελευταίο μοντέλο που απάντησε σωστά (για να μην ξαναχάνουμε χρόνο)
+  const busyErr = (st, msg) => st === 503 || st === 500 || st === 529 || /high demand|overloaded|unavailable|try again later/i.test(msg);
+  async function post(path, contents, max, signal, sys) {
+    const chain = [...new Set([goodModel, S.model, ...FALLBACK].filter(Boolean))];
+    let lastMsg = '';
+    for (let mi = 0; mi < chain.length; mi++) {
+      const model = chain[mi];
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:${path}`;
+        const r = await fetch(url, { method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': S.apiKey }, body: body(contents, max, sys) });
+        if (r.ok) { goodModel = model; stats.model = model; return r; }
+        const data = await r.json().catch(() => ({}));
+        const msg = (data.error && data.error.message) || ('HTTP ' + r.status);
+        lastMsg = msg;
+        if (r.status === 400 && /think/i.test(msg) && thinkIdx < THINK.length - 1) { thinkIdx++; attempt--; continue; }
+        if (r.status === 403) throw new Error('Το κλειδί απορρίφθηκε (403) – έλεγξε τον περιορισμό ιστοσελίδας. ' + msg);
+        if (busyErr(r.status, msg)) { if (attempt === 0 && mi === 0) { await new Promise(z => setTimeout(z, 700)); continue; } break; } // πάμε στο επόμενο μοντέλο
+        if (r.status === 404 || (r.status === 400 && /model/i.test(msg))) break;
+        if (r.status === 429) { if (goodModel === model) goodModel = null; break; } // το όριο είναι ανά μοντέλο: δοκίμασε άλλο
+        throw new Error(msg);
+      }
     }
+    throw new Error('Όλα τα μοντέλα Gemini είναι απασχολημένα ή εκτός ορίου τώρα. ' + lastMsg);
   }
   const partsText = c => ((c && c.content && c.content.parts) || []).filter(p => !p.thought).map(p => p.text || '').join('');
 
   /* απλή κλήση (για κάμερα και δοκιμή) */
   async function geminiCall(contents, max = 600, sys) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(S.model)}:generateContent`;
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 20000);
     try {
-      const r = await post(url, contents, max, ctl.signal, sys);
+      const r = await post('generateContent', contents, max, ctl.signal, sys);
       const data = await r.json();
       const c = data.candidates && data.candidates[0];
       return partsText(c) || 'Ωπ, αυτό δεν μπορώ να το πω. Πάμε να παίξουμε κάτι άλλο;';
@@ -93,7 +106,6 @@ ${facts}
 
   /* κλήση με ροή: καλεί onSentence(πρόταση) για κάθε ολοκληρωμένη πρόταση */
   async function geminiStream(contents, onSentence) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(S.model)}:streamGenerateContent?alt=sse`;
     const ctl = new AbortController(); let first = false;
     const t1 = setTimeout(() => { if (!first) ctl.abort(); }, 15000), t2 = setTimeout(() => ctl.abort(), 30000);
     const t0 = performance.now();
@@ -110,7 +122,7 @@ ${facts}
       if (cut > sent) { const s = clean(full.slice(sent, cut)); sent = cut; if (s && onSentence) onSentence(s); }
     };
     try {
-      const r = await post(url, contents, 600, ctl.signal);
+      const r = await post('streamGenerateContent?alt=sse', contents, 600, ctl.signal);
       const rd = r.body.getReader(), dec = new TextDecoder();
       for (;;) {
         const { value, done } = await rd.read(); if (done) break;
@@ -199,7 +211,7 @@ ${facts}
       try { return await p.see(b64, prompt); }
       catch (e) { DB.ai.lastError = e.message; return { text: 'Δεν κατάφερα να δω καλά. Δοκιμάζουμε ξανά;', action: 'HEAD' }; }
     },
-    async test() { const t0 = performance.now(); const out = await geminiCall([{ role: 'user', parts: [{ text: 'Πες μόνο: Γεια σου!' }] }]); return parse(out).text + ` (${((performance.now() - t0) / 1000).toFixed(1)} δευτ.)`; },
+    async test() { const t0 = performance.now(); const out = await geminiCall([{ role: 'user', parts: [{ text: 'Πες μόνο: Γεια σου!' }] }]); return parse(out).text + ` (${((performance.now() - t0) / 1000).toFixed(1)} δευτ., μοντέλο ${stats.model || S.model})`; },
     reset() { gemini.reset(); },
     /* συμπύκνωση πολλών σημειώσεων σε σύντομο «φάκελο» */
     async summarizeProfile(text) {

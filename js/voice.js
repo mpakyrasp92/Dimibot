@@ -60,7 +60,7 @@ window.DB = window.DB || {};
       const msg = (data.error && data.error.message) || ('HTTP ' + r.status);
       if (r.status === 429) { cloud.off = DB.store.today(); throw new Error('Τελείωσε το σημερινό δωρεάν όριο φωνής (429)'); }
       if ((r.status === 404 || r.status === 400) && !useLegacy) { useLegacy = true; continue; }
-      if ((r.status === 404 || r.status === 400) && modelIdx < TTS_MODELS.length - 1) { modelIdx++; useLegacy = false; continue; }
+      if ((r.status === 404 || r.status === 400 || r.status === 503 || r.status === 500 || /high demand|overloaded/i.test(msg)) && modelIdx < TTS_MODELS.length - 1) { modelIdx++; useLegacy = false; continue; }
       throw new Error(msg);
     }
   }
