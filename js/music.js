@@ -15,9 +15,18 @@ window.DB = window.DB || {};
   }
   async function tx(mode, fn) { const d = await db(); return new Promise((res, rej) => { const t = d.transaction('songs', mode); const st = t.objectStore('songs'); const out = fn(st); t.oncomplete = () => res(out && out.result !== undefined ? out.result : out); t.onerror = () => rej(t.error); }); }
   let cache = null;
-  async function list() { if (cache) return cache; const all = await tx('readonly', st => st.getAll()); cache = (all || []).map(s => ({ id: s.id, name: s.name, size: s.blob.size })); return cache; }
-  async function add(file) { const id = 's' + Date.now() + Math.floor(Math.random() * 1000); await tx('readwrite', st => st.put({ id, name: file.name.replace(/\.[^.]+$/, ''), blob: file })); cache = null; return id; }
-  async function remove(id) { await tx('readwrite', st => st.delete(id)); cache = null; }
+  let all = null;
+  async function loadAll() { if (all) return all; all = (await tx('readonly', st => st.getAll())) || []; return all; }
+  async function list() { if (cache) return cache; const a = await loadAll(); cache = a.filter(s => !s.cheer).map(s => ({ id: s.id, name: s.name, size: s.blob.size })); return cache; }
+  async function cheers() { const a = await loadAll(); return a.filter(s => s.cheer).map(s => ({ id: s.id, name: s.name })); }
+  async function addCheer(blob, name) { const id = 'c' + Date.now(); await tx('readwrite', st => st.put({ id, name: name || 'Κερκίδα', blob, cheer: true })); all = null; return id; }
+  let cheerA = null;
+  async function playCheer(vol = 1) {
+    try { const c = await cheers(); if (!c.length) return false; const s = await get(c[Math.floor(Math.random() * c.length)].id); if (!s) return false;
+      const u = URL.createObjectURL(s.blob); cheerA = new Audio(u); cheerA.volume = vol; cheerA.onended = () => URL.revokeObjectURL(u); await cheerA.play(); return true; } catch (e) { return false; }
+  }
+  async function add(file) { const id = 's' + Date.now() + Math.floor(Math.random() * 1000); await tx('readwrite', st => st.put({ id, name: file.name.replace(/\.[^.]+$/, ''), blob: file })); cache = null; all = null; return id; }
+  async function remove(id) { await tx('readwrite', st => st.delete(id)); cache = null; all = null; }
   async function get(id) { return tx('readonly', st => st.get(id)); }
 
   /* παίζει ένα τυχαίο τραγούδι για «secs» δευτερόλεπτα, από ένα ζωντανό σημείο του */
@@ -39,5 +48,5 @@ window.DB = window.DB || {};
   function stop() { clearTimeout(stopT); if (audio) { try { audio.pause(); } catch (e) {} audio = null; } if (url) { URL.revokeObjectURL(url); url = null; } }
   const playing = () => !!(audio && !audio.paused);
 
-  DB.music = { list, add, remove, play, stop, playing, has: async () => (await list().catch(() => [])).length > 0 };
+  DB.music = { list, add, remove, play, stop, playing, cheers, addCheer, playCheer, has: async () => (await list().catch(() => [])).length > 0 };
 })();

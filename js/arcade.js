@@ -93,11 +93,11 @@ window.DB = window.DB || {};
   }
 
   /* ---------- 1. Μετεωρίτες με γράμματα ---------- */
-  function meteors(area, alive, lv) {
+  function meteors(area, alive, lv, o = {}) {
     const pool = C.LETTERS.slice(0, Math.min(C.LETTERS.length, 4 + lv * 4));
     const recent = pool.slice(-6);
     return arcade(area, alive, {
-      cls: 'space', mode: 'fall', hits: 6, speed: 55 + lv * 10, every: 1100 - lv * 80, max: 4 + Math.min(3, lv),
+      cls: 'space', mode: 'fall', hits: o.hits || 6, speed: 55 + lv * 10, every: 1100 - lv * 80, max: 4 + Math.min(3, lv),
       next: () => pick(Math.random() < .5 ? recent : pool),
       top: L => `<span class="glyph">${L[0]}</span><span class="emo">${L[3]}</span>`,
       say: L => `${L[1]}!`,
@@ -108,12 +108,12 @@ window.DB = window.DB || {};
   }
 
   /* ---------- 2. Φούσκες με αγγλικές λέξεις ---------- */
-  function bubbles(area, alive, words, lv) {
+  function bubbles(area, alive, words, lv, o = {}) {
     const list = words.map(C.W).filter(Boolean);
     const others = C.WORDS.filter(w => !list.includes(w));
     let i = 0;
     return arcade(area, alive, {
-      cls: 'sea', mode: 'rise', hits: 6, speed: 60 + lv * 8, every: 950, max: 5,
+      cls: 'sea', mode: 'rise', hits: o.hits || 6, speed: 60 + lv * 8, every: 950, max: 5,
       next: () => list[i++ % list.length],
       top: w => `<span class="en">${w[0]}</span>`,
       say: w => `{${w[0]}}!`,
@@ -138,10 +138,10 @@ window.DB = window.DB || {};
     ['κρύα', 'Πιάσε μόνο ό,τι είναι κρύο!', ['🧊', '⛄', '❄️', '🍦', '🐧'], ['☀️', '🔥', '☕', '🌋', '⚽', '📖', '🧸', '🌳', '🍌', '🔑']]
   ];
   const SORTS = [[0, 1], [6, 1], [0, 2], [1, 2], [3, 2], [5, 7], [3, 1], [6, 0]];
-  function hunt(area, alive, lv, idx) {
+  function hunt(area, alive, lv, idx, o = {}) {
     const [label, say, set, bad] = HUNT[idx % HUNT.length];
     return arcade(area, alive, {
-      cls: 'air', mode: 'fly', hits: 6, speed: 70 + lv * 12, every: 900 - lv * 50, max: 5, okRate: .45,
+      cls: 'air', mode: 'fly', hits: o.hits || 6, speed: 70 + lv * 12, every: 900 - lv * 50, max: 5, okRate: .45,
       next: () => label,
       top: () => `<span class="huntL">${say.replace('Πιάσε μόνο ', '').replace('!', '')}</span><span class="emo">${set[0]}${set[1]}</span>`,
       say: () => say,
@@ -211,16 +211,16 @@ window.DB = window.DB || {};
 
 
   /* ---------- 5. Εξωγήινοι στις τρύπες (γράμματα ή αριθμοί) ---------- */
-  function whack(area, alive, kind, lv) {
+  function whack(area, alive, kind, lv, o = {}) {
     return new Promise(resolve => {
-      const HITS = 6;
+      const HITS = o.hits || 6;
       const letters = C.LETTERS.slice(0, Math.min(C.LETTERS.length, 4 + lv * 4));
       const maxN = lv <= 1 ? 5 : lv <= 3 ? 7 : 10;
       const nums = Array.from({ length: maxN }, (_, i) => i + 1);
       const pool = kind === 'letters' ? letters.map(l => l[0]) : nums;
       let target, hits = 0, first = 0, missed = false, ended = false, timers = [];
       area.innerHTML = `<div class="arcade whackG"><div class="aTop"><button class="aSay" aria-label="Άκου ξανά">🔊</button><div class="aTarget"></div><div class="aHits">${'<i></i>'.repeat(HITS)}</div></div>
-        <div class="holes">${Array.from({ length: 9 }, (_, i) => `<button class="hole" data-i="${i}"><span class="alien"><span class="emo">👾</span><b></b></span></button>`).join('')}</div></div>`;
+        <div class="holes">${Array.from({ length: 9 }, (_, i) => `<button class="hole" data-i="${i}"><span class="alien"><span class="emo">${o.skin || '👾'}</span><b></b></span></button>`).join('')}</div></div>`;
       const holes = [...area.querySelectorAll('.hole')], topEl = area.querySelector('.aTarget'), hitsEl = area.querySelectorAll('.aHits i');
       const L = k => letters.find(l => l[0] === k);
       const say = () => V.speak(kind === 'letters' ? `${L(target)[1]}!` : `Ποιος έχει ${C.NUM[target]};`);
@@ -328,10 +328,10 @@ window.DB = window.DB || {};
   }
 
   /* ---------- 8. Μπάσκετ: σουτ στο καλάθι που κινείται, μετράμε πόντους (2άρια και 3άρια) ---------- */
-  function hoop(area, alive, lv) {
+  function hoop(area, alive, lv, o = {}) {
     return new Promise(resolve => {
-      const GOAL = 5, S = DB.settings;
-      let made = 0, total = 0, first = 0, miss = false, busy = false, t0 = performance.now(), raf = 0, ended = false, shot = 0;
+      const GOAL = o.hits || 5, S = DB.settings;
+      let made = 0, total = 0, first = 0, miss = false, busy = false, t0 = performance.now(), raf = 0, ended = false, shot = 0, streak = 0, gold = false;
       area.innerHTML = `<div class="hoopG"><div class="aTop"><div class="aTarget score"><span class="emo">🏀</span><b class="pts">0</b><small>πόντοι</small></div><div class="aHits">${'<i></i>'.repeat(GOAL)}</div></div>
         <div class="court"><div class="hoop"><div class="board"></div><div class="rim"></div><div class="net"></div></div><div class="kind"></div><span class="ball emo">🏀</span><div class="line3"></div></div>
         <button class="go big shoot">🏀 ΣΟΥΤ!</button></div>`;
@@ -339,7 +339,7 @@ window.DB = window.DB || {};
       const speed = .7 + lv * .18, amp = () => court.clientWidth * .36;
       let hx = 0;
       const three = () => shot % 3 === 2;   // κάθε τρίτο σουτ είναι τρίποντο
-      const setKind = () => { kind.textContent = three() ? '3 πόντοι' : '2 πόντοι'; court.classList.toggle('far', three()); };
+      const setKind = () => { gold = shot > 0 && Math.random() < .22; kind.textContent = gold ? '⭐ Χρυσή μπάλα: 5 πόντοι!' : three() ? '3 πόντοι' : '2 πόντοι'; court.classList.toggle('far', three() || gold); court.classList.toggle('gold', gold); ball.textContent = gold ? '🌟' : streak >= 3 ? '🔥' : '🏀'; };
       setKind();
       function loop(t) {
         if (ended) return; if (!alive()) { ended = true; return resolve(null); }
@@ -348,11 +348,12 @@ window.DB = window.DB || {};
         raf = requestAnimationFrame(loop);
       }
       raf = requestAnimationFrame(loop);
-      V.speak(`Μπάσκετ! Πάτα «Σουτ» όταν το καλάθι είναι από πάνω σου!`);
+      if (!o.quiet) V.speak(`Μπάσκετ! Πάτα «Σουτ» όταν το καλάθι είναι από πάνω σου!`);
       let frozen = false;
+      const sleep = ms => new Promise(r => setTimeout(r, ms));
       const shoot = () => {
         if (busy || ended || !alive()) return; busy = true;
-        const pts3 = three();
+        const pts3 = three() && !gold;
         const tol = court.clientWidth * (lv <= 1 ? .16 : lv <= 3 ? .12 : .09);
         const ok = Math.abs(hx) < tol;           // κρίνεται τη στιγμή του σουτ (πιο δίκαιο για μικρά παιδιά)
         if (ok) frozen = true;                     // το καλάθι «περιμένει» την μπάλα
@@ -361,7 +362,9 @@ window.DB = window.DB || {};
         R().set('armR', 'rotate(-165deg)'); R().set('bot', 'translateY(-16px)'); setTimeout(() => R().rest(), 300);
         setTimeout(async () => {
           if (ok) {
-            const p = pts3 ? 3 : 2; total += p; made++; if (!miss) first++; miss = false;
+            const p = (gold ? 5 : pts3 ? 3 : 2) + (streak >= 3 ? 1 : 0); total += p; made++; if (!miss) first++; miss = false; streak++;
+            if (streak === 3) { court.classList.add('fire'); V.speak('Πήρες φωτιά! Κάθε καλάθι αξίζει έναν πόντο παραπάνω!'); await sleep(1500); }
+            if (Math.random() < .35) DB.music && DB.music.playCheer(.8);
             ball.classList.add('in'); court.classList.add('swish'); setTimeout(() => court.classList.remove('swish'), 500);
             pts.textContent = total; hitsEl[made - 1] && hitsEl[made - 1].classList.add('on');
             V.sfx.right(); joy(made === GOAL); PR.result('numbers', true);
@@ -370,7 +373,7 @@ window.DB = window.DB || {};
             frozen = false; t0 = performance.now() - Math.random() * 2000;
             if (made >= GOAL) { ended = true; cancelAnimationFrame(raf); return resolve({ hits: GOAL, first, total }); }
           } else {
-            miss = true; ball.classList.add('out'); V.sfx.boing(); oops();
+            miss = true; streak = 0; court.classList.remove('fire'); ball.classList.add('out'); V.sfx.boing(); oops();
             V.speak(['Άουτ! Ξανά!', 'Σχεδόν! Περίμενε το καλάθι!', 'Στο σίδερο! Πάμε πάλι!'][shot % 3]);
           }
           shot++; setKind();

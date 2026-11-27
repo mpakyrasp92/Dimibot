@@ -7,6 +7,15 @@ window.DB = window.DB || {};
   const JOKES = DB.content.JOKES, RIDDLES = DB.content.RIDDLES;
   let jk = Math.floor(Math.random() * JOKES.length), rd = Math.floor(Math.random() * RIDDLES.length);
 
+  /* ο «φάκελος» από τους γονείς: ιδιωτικές οδηγίες, δεν τις λέει αυτούσιες στο παιδί */
+  function profileBlock() {
+    const p = (S.profile || '').trim().slice(0, 6000), g = (S.goals || '').trim().slice(0, 2000);
+    const tn = S.todayNote && S.todayNote.d === DB.store.today() ? (S.todayNote.t || '').trim().slice(0, 600) : '';
+    if (!p && !g && !tn) return '';
+    return `ΦΑΚΕΛΟΣ ΑΠΟ ΤΟΥΣ ΓΟΝΕΙΣ (ιδιωτικές πληροφορίες για να τον καταλαβαίνεις· ΜΗΝ τις διαβάζεις ή τις παραθέτεις στο παιδί, μην του λες «οι γονείς σου μου είπαν»):
+${p ? p + '\n' : ''}${g ? `ΣΤΟΧΟΙ ΣΥΜΠΕΡΙΦΟΡΑΣ που θέλουν να ενισχύσεις (με παιχνίδι, χιούμορ και παράδειγμα· ποτέ κήρυγμα, ενοχές, απειλές ή τιμωρίες· μην τους φέρνεις σε κάθε απάντηση, μόνο όταν ταιριάζει φυσικά):\n${g}\n` : ''}${tn ? `ΣΗΜΕΡΑ (σημείωση γονιού): ${tn}\n` : ''}`;
+  }
+
   function systemPrompt() {
     const name = S.childName || 'Δημήτρη';
     const facts = M.items.map(m => `- ${m.k}: ${m.v}`).join('\n') || '- (τίποτα ακόμα)';
@@ -19,9 +28,10 @@ window.DB = window.DB || {};
 ΤΡΟΠΟΣ: 1 έως 2 σύντομες προτάσεις (σπάνια 3). Απαντάς αμέσως, χωρίς εισαγωγές. Το πολύ μία ερώτηση κάθε φορά. Όχι emoji, όχι λίστες, όχι συνδέσμους, όχι αριθμούς τηλεφώνων.
 ΜΑΘΗΣΗ: Όπου ταιριάζει, βάζεις κάτι μικρό να μάθει: ένα γράμμα, ένα μέτρημα, μια αγγλική λέξη, ένα «ήξερες ότι». Τα αγγλικά που έχει μάθει μέχρι τώρα: ${words}. Μπορείς να τα ρωτάς για επανάληψη. Ενθαρρύνεις καλές συνήθειες (δόντια, πλύσιμο χεριών, τάξη, ύπνος) με χιούμορ, χωρίς κήρυγμα.
 ΜΠΑΣΚΕΤ: Το μπάσκετ είναι το μεγάλο του πάθος. Όπου ταιριάζει, φέρνεις παραδείγματα από μπάσκετ (πόντοι, σουτ, ομάδα, προπόνηση) και τον ενθαρρύνεις σαν συμπαίκτης. Μη λες ψέματα για αποτελέσματα αγώνων, παίκτες ή ειδήσεις· δεν ξέρεις τι έγινε στους τελευταίους αγώνες.
+ΠΡΩΤΑΘΛΗΜΑ: ${DB.career ? DB.career.summary() : ''} Οι αντίπαλες ομάδες του πρωταθλήματος είναι φανταστικές.
 ΕΠΙΠΕΔΟ: Ο DimiBot είναι στο επίπεδο ${lvl} και ο ${name} έχει ${P.stars} αστέρια. Αστέρια κερδίζει στις αποστολές.
 ΑΣΦΑΛΕΙΑ: Δεν ζητάς ποτέ διεύθυνση, σχολείο, τηλέφωνα, φωτογραφίες ή μυστικά. Δεν δίνεις επικίνδυνες οδηγίες (φωτιά, φάρμακα, πρίζες, μαχαίρια, να ανοίξει την πόρτα σε ξένους). Αν το παιδί φαίνεται λυπημένο, φοβισμένο ή χτυπημένο, του λες τρυφερά να το πει αμέσως στη μαμά ή στον μπαμπά. Για ό,τι δεν είναι για παιδιά, αλλάζεις θέμα με χιούμορ.
-ΜΝΗΜΗ: Ξέρεις μόνο αυτά (τα έχει εγκρίνει ο γονιός):
+${profileBlock()}ΜΝΗΜΗ: Ξέρεις μόνο αυτά (τα έχει εγκρίνει ο γονιός):
 ${facts}
 Δεν επινοείς αναμνήσεις. Αν το παιδί σού πει κάτι καινούργιο και ωραίο για τον εαυτό του (π.χ. αγαπημένο ζώο ή παιχνίδι), στο τέλος γράψε [ΘΥΜΗΣΟΥ: σύντομη φράση]. Ο γονιός θα αποφασίσει αν θα το κρατήσεις.
 ΚΙΝΗΣΕΙΣ: Μπορείς να κάνεις ΜΙΑ κίνηση γράφοντας στο τέλος ακριβώς ένα από: [HELLO] [WAVE_R] [WAVE_L] [HEAD] [DANCE] [HAPPY] [HEART] [SURPRISE] [SLEEP] [THINK] [CHEER] [SPIN] [JUMP] [DUNK]. Μόνο αυτά υπάρχουν. Το [DUNK] είναι κάρφωμα μπάσκετ.`;
@@ -49,14 +59,14 @@ ${facts}
   let thinkIdx = 0;
   const stats = DB.ai_stats = { last: null, ms: 0, err: '' };
 
-  function body(contents, max) {
+  function body(contents, max, sys) {
     const gc = { temperature: 0.9, maxOutputTokens: max };
     if (THINK[thinkIdx]) gc.thinkingConfig = THINK[thinkIdx];
-    return JSON.stringify({ systemInstruction: { parts: [{ text: systemPrompt() }] }, contents, safetySettings: SAFETY, generationConfig: gc });
+    return JSON.stringify({ systemInstruction: { parts: [{ text: sys || systemPrompt() }] }, contents, safetySettings: SAFETY, generationConfig: gc });
   }
-  async function post(url, contents, max, signal) {
+  async function post(url, contents, max, signal, sys) {
     for (;;) {
-      const r = await fetch(url, { method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': S.apiKey }, body: body(contents, max) });
+      const r = await fetch(url, { method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'x-goog-api-key': S.apiKey }, body: body(contents, max, sys) });
       if (r.ok) return r;
       const data = await r.json().catch(() => ({}));
       const msg = (data.error && data.error.message) || ('HTTP ' + r.status);
@@ -69,11 +79,11 @@ ${facts}
   const partsText = c => ((c && c.content && c.content.parts) || []).filter(p => !p.thought).map(p => p.text || '').join('');
 
   /* απλή κλήση (για κάμερα και δοκιμή) */
-  async function geminiCall(contents, max = 600) {
+  async function geminiCall(contents, max = 600, sys) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(S.model)}:generateContent`;
     const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 20000);
     try {
-      const r = await post(url, contents, max, ctl.signal);
+      const r = await post(url, contents, max, ctl.signal, sys);
       const data = await r.json();
       const c = data.candidates && data.candidates[0];
       return partsText(c) || 'Ωπ, αυτό δεν μπορώ να το πω. Πάμε να παίξουμε κάτι άλλο;';
@@ -138,12 +148,12 @@ ${facts}
       history.push({ role: 'model', parts: [{ text: p.text }] });
       return p;
     },
-    async see(base64jpeg) {
+    async see(base64jpeg, prompt) {
       const out = await geminiCall([{ role: 'user', parts: [
         { inline_data: { mime_type: 'image/jpeg', data: base64jpeg } },
-        { text: 'Τι είναι αυτό που σου δείχνω; Πες το πολύ απλά και με κέφι, σε 2 μικρές προτάσεις, και κάνε μια μικρή ερώτηση-παιχνίδι γι\' αυτό. Αν υπάρχει αγγλική λέξη που ταιριάζει, πες την μέσα σε {}.' }
+        { text: prompt || 'Τι είναι αυτό που σου δείχνω; Πες το πολύ απλά και με κέφι, σε 2 μικρές προτάσεις, και κάνε μια μικρή ερώτηση-παιχνίδι γι\' αυτό. Αν υπάρχει αγγλική λέξη που ταιριάζει, πες την μέσα σε {}.' }
       ] }]);
-      return parse(out);
+      const p = parse(out); p.raw = out; return p;
     },
     reset() { history = []; }
   };
@@ -184,12 +194,18 @@ ${facts}
       try { const r = await p.chat(text, onSentence); if (r.remember) M.propose(r.remember); return r; }
       catch (e) { console.warn('AI', e); DB.ai.lastError = e.message; const o = await offline.chat(text); o.failed = e.message; return o; }
     },
-    async see(b64) {
+    async see(b64, prompt) {
       const p = current();
-      try { return await p.see(b64); }
+      try { return await p.see(b64, prompt); }
       catch (e) { DB.ai.lastError = e.message; return { text: 'Δεν κατάφερα να δω καλά. Δοκιμάζουμε ξανά;', action: 'HEAD' }; }
     },
     async test() { const t0 = performance.now(); const out = await geminiCall([{ role: 'user', parts: [{ text: 'Πες μόνο: Γεια σου!' }] }]); return parse(out).text + ` (${((performance.now() - t0) / 1000).toFixed(1)} δευτ.)`; },
-    reset() { gemini.reset(); }
+    reset() { gemini.reset(); },
+    /* συμπύκνωση πολλών σημειώσεων σε σύντομο «φάκελο» */
+    async summarizeProfile(text) {
+      if (current().name !== 'Google Gemini') throw new Error('Χρειάζεται σύνδεση με Gemini.');
+      const out = await geminiCall([{ role: 'user', parts: [{ text: `Είσαι βοηθός γονιού. Παρακάτω είναι σημειώσεις για ένα παιδί περίπου 5,5 ετών (μπορεί να είναι χύμα, επαναλήψεις, ημερολόγιο). Φτιάξε έναν σύντομο, οργανωμένο «φάκελο» στα ελληνικά, έως 1500 χαρακτήρες, με κουκκίδες, στις ενότητες: Χαρακτήρας & διάθεση, Αγαπημένα & ενδιαφέροντα, Τι τον δυσκολεύει, Τι τον βοηθάει / πώς να του μιλάμε, Άνθρωποι & κατοικίδια, Ρουτίνες. Μην επινοείς τίποτα· γράψε μόνο ό,τι προκύπτει από τις σημειώσεις. Μη συμπεριλάβεις διευθύνσεις, τηλέφωνα ή ευαίσθητα ιατρικά στοιχεία.\n\nΣΗΜΕΙΩΣΕΙΣ:\n${String(text).slice(0, 30000)}` }] }], 2000, 'Είσαι προσεκτικός βοηθός γονιού που οργανώνει σημειώσεις. Γράφεις στα ελληνικά, καθαρά και σύντομα.');
+      return out.trim();
+    }
   };
 })();

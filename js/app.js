@@ -15,13 +15,15 @@ window.DB = window.DB || {};
   function show(v) {
     if (DB.usage.over() && v !== 'parent') v = 'lock';
     if (app.view === 'mission' && v !== 'mission') MI.pause();
+    if (app.view === 'match' && v !== 'match') DB.career.pause();
     app.view = v;
     document.querySelectorAll('.view').forEach(s => { s.hidden = s.id !== 'v-' + v; });
-    const tab = { mission: 'home', routines: 'home' }[v] || v;
+    const tab = { mission: 'home', routines: 'home', match: 'home', league: 'home' }[v] || v;
     document.querySelectorAll('.tabs button[data-v]').forEach(b => b.toggleAttribute('aria-current', b.dataset.v === tab));
     document.body.dataset.view = v;
     if (v === 'camera') camStart(); else camStop();
-    if (v === 'home') drawHome();
+    if (v === 'home') { drawHome(); DB.career.drawHomeCard(); }
+    if (v === 'league') DB.career.drawLeague();
     if (v === 'routines') { const box = $('#rBoxHome'); MI.drawChecklist(box, false); }
     if (v === 'garage') DB.garage.draw();
     if (v === 'parent') fillParent();
@@ -102,6 +104,8 @@ window.DB = window.DB || {};
   $('#homePractice').addEventListener('click', () => { V.stop(); MI.start(true); });
   $('#homeRoutines').addEventListener('click', () => { V.sfx.tap(); show('routines'); R.say('Πάτα ό,τι έκανες σήμερα!'); });
   $('#mAgain').addEventListener('click', () => MI.again());
+  $('#cAgain').addEventListener('click', () => { const t = document.querySelector('.bubble').textContent; if (t) R.say(t); });
+  $('#cPause').addEventListener('click', () => { DB.career.pause(); show('home'); R.say('Τάιμ άουτ! Ο αγώνας μάς περιμένει.'); });
   $('#mPause').addEventListener('click', () => { MI.pause(); show('home'); R.say('Διάλειμμα! Η αποστολή σε περιμένει όπου σταματήσαμε.'); });
 
   /* διασκέδαση */
@@ -112,6 +116,7 @@ window.DB = window.DB || {};
       if (riddle) { const r = riddle; riddle = null; funLabel('riddle', 'Γρίφος'); R.confetti(50); await R.say('Η λύση είναι… ' + r[1]); return; }
       riddle = C.RIDDLES[Math.floor(Math.random() * C.RIDDLES.length)]; funLabel('riddle', 'Λύση!'); R.eyes('focus'); await R.say(riddle[0] + ' Σκέψου… και πάτα «Λύση»!'); R.eyes('normal'); DB.log.add('riddle'); }],
     ['dance', '🕺', 'Χορός', () => R.run('DANCE')],
+    ['lesson', '🧠', 'Μαθήματα', async () => { MI.resume(); }],
     ['dunk', '🏀', 'Κάρφωμα', async () => { const s = R.say(['Πάμε Περιστέρι!', 'Κάρφωμααα!', 'Τριπλή άμυνα… και καλάθι!'][Math.floor(Math.random() * 3)]); await R.run('DUNK'); await s; }],
     ['fact', '🔭', 'Ήξερες ότι;', async () => { const f = C.FACTS[Math.floor(Math.random() * C.FACTS.length)]; R.eyes('focus'); await R.say('Ήξερες ότι… ' + f[1]); R.eyes('normal'); }],
     ['story', '📖', 'Ιστορία', () => converse(`Πες μου μια πολύ μικρή, αστεία ιστορία-περιπέτεια στο διάστημα σε 4 σύντομες προτάσεις, με πρωταγωνιστές εσένα και τον ${S.childName}.`)]
@@ -132,19 +137,19 @@ window.DB = window.DB || {};
   async function converse(text) {
     setMic('think'); R.eyes('focus');
     const q = []; let done = false, wake = null, said = '', spoke = false;
-    let filler = setTimeout(() => { if (!spoke) { R.setBubble(FILLERS[fi % FILLERS.length]); V.speak(FILLERS[fi++ % FILLERS.length]); } }, 1200);
+    let filler = setTimeout(() => { if (!spoke) { R.setBubble(FILLERS[fi % FILLERS.length]); V.speak(FILLERS[fi++ % FILLERS.length], { chat: true }); } }, 1200);
     const speaker = (async () => {
       for (;;) {
-        if (q.length) { const s = q.shift(); if (!spoke) { spoke = true; clearTimeout(filler); setMic('idle'); R.eyes('normal'); } said += (said ? ' ' : '') + s; R.setBubble(said.replace(/[{}]/g, '')); await V.speak(s); continue; }
+        if (q.length) { const s = q.shift(); if (!spoke) { spoke = true; clearTimeout(filler); setMic('idle'); R.eyes('normal'); } said += (said ? ' ' : '') + s; R.setBubble(said.replace(/[{}]/g, '')); await V.speak(s, { chat: true }); continue; }
         if (done) return; await new Promise(r => { wake = r; });
       }
     })();
-    const r = await A.chat(text, s => { q.push(s); if (wake) { const w = wake; wake = null; w(); } });
+    const r = await A.chat(text, s => { q.push(s); V.prefetch(s, true); if (wake) { const w = wake; wake = null; w(); } });
     clearTimeout(filler); done = true; if (wake) { const w = wake; wake = null; w(); }
     setMic('idle'); R.eyes('normal');
     const act = r.action ? R.run(r.action) : Promise.resolve();
     if (r.streamed && spoke) await Promise.all([speaker, act]);
-    else { await speaker; await Promise.all([R.say(r.text), act]); }
+    else { await speaker; await Promise.all([R.say(r.text, { chat: true }), act]); }
     hudAi();
   }
   $('#micBtn').addEventListener('click', () => {
@@ -209,9 +214,22 @@ window.DB = window.DB || {};
   bindVal('#pProvider', 'provider', x => x, chips); bindVal('#pKey', 'apiKey', x => x.trim(), chips); bindVal('#pModel', 'model', x => x.trim() || 'gemini-3.8-flash');
   bindVal('#pAi', 'aiOn', x => x, chips); bindVal('#pCam', 'camOn'); bindVal('#pPitch', 'pitch', Number); bindVal('#pRate', 'rate', Number);
   bindVal('#pName', 'childName', x => x.trim() || 'Δημήτρη'); bindVal('#pMinutes', 'dailyMinutes', x => Math.max(5, +x || 45));
-  bindVal('#pApprove', 'approve'); bindVal('#pJersey', 'jersey', x => Math.max(0, Math.min(99, parseInt(x) || 0)), () => R.applyLook()); bindVal('#pSongs', 'songs'); bindVal('#pMaxM', 'maxMissions', x => Math.max(1, Math.min(5, +x || 5)));
+  bindVal('#pApprove', 'approve'); bindVal('#pTeam', 'teamName', x => x.trim() || 'DimiBots'); bindVal('#pJersey', 'jersey', x => Math.max(0, Math.min(99, parseInt(x) || 0)), () => R.applyLook()); bindVal('#pSongs', 'songs'); bindVal('#pMaxM', 'maxMissions', x => Math.max(1, Math.min(5, +x || 5)));
   $('#pKeep').addEventListener('change', e => { S.keepAlive = e.target.checked; S.save(); V.keepAlive(S.keepAlive); });
-  $('#pVoiceTest').addEventListener('click', () => R.say(`Γεια σου ${S.childName}! Έτσι ακούγεται η φωνή μου. And this is my English: {Hello, my friend!}`));
+  $('#pVoiceTest').addEventListener('click', () => R.say(`Γεια σου ${S.childName}! Είμαι ο DimiBot! Πάμε για αποστολή; And my English: {Hello, my friend!}`, { chat: true }).then(fillVoice));
+  bindVal('#pTtsEngine', 'ttsEngine', x => x, fillVoice); bindVal('#pTtsRate', 'ttsRate', Number); bindVal('#pTtsRobot', 'ttsRobot'); bindVal('#pTtsScope', 'ttsScope');
+  bindVal('#pDevVoice', 'deviceVoice', x => x, () => V.repick());
+  $('#pTtsVoices').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b) return; S.ttsVoice = b.dataset.v; S.save(); fillVoice(); R.say(`Γεια! Αυτή είναι η φωνή «${b.dataset.n}». Σου αρέσει;`, { chat: true }).then(fillVoice); });
+  $('#pTtsClear').addEventListener('click', () => { V.clearCache(); $('#pTtsInfo').textContent = 'Οι αποθηκευμένες φράσεις σβήστηκαν.'; });
+  function fillVoice() {
+    $('#pTtsEngine').value = S.ttsEngine || 'gemini'; $('#pTtsRate').value = S.ttsRate || 1.08; $('#pTtsRobot').checked = !!S.ttsRobot; $('#pTtsScope').value = S.ttsScope || 'all';
+    $('#pTtsVoices').innerHTML = V.VOICES.map(([v, n]) => `<button class="ghost sm${(S.ttsVoice || 'Leda') === v ? ' sel' : ''}" data-v="${v}" data-n="${n}">${n}</button>`).join('');
+    $('#pGemVoice').hidden = S.ttsEngine === 'device';
+    const dv = V.greekVoices(); $('#pDevVoice').innerHTML = '<option value="">Αυτόματα</option>' + dv.map(n => `<option ${n === S.deviceVoice ? 'selected' : ''}>${esc(n)}</option>`).join('');
+    const st = DB.tts_stats || {};
+    $('#pTtsInfo').textContent = S.ttsEngine === 'device' ? 'Μιλάει με τη φωνή του tablet.' : !S.apiKey ? 'Χρειάζεται κλειδί Gemini (κάρτα «Τεχνητή νοημοσύνη»). Μέχρι τότε μιλάει με τη φωνή του tablet.'
+      : st.off === DB.store.today() ? 'Τελείωσε το σημερινό δωρεάν όριο φωνής· μέχρι αύριο μιλάει με τη φωνή του tablet.' : st.err ? 'Τελευταίο πρόβλημα: ' + st.err : st.n ? `Φωνή Gemini: OK (τελευταία φράση σε ${(st.ms / 1000).toFixed(1)} δευτ.)` : 'Πάτα «Άκου τη φωνή» για δοκιμή.';
+  }
   $('#pTest').addEventListener('click', async () => {
     $('#pTestOut').textContent = 'Δοκιμή…';
     try { const t = await A.test(); $('#pTestOut').textContent = 'Λειτουργεί: «' + t + '»'; }
@@ -224,6 +242,24 @@ window.DB = window.DB || {};
   $('#pGoalN').addEventListener('change', e => { S.goal.stars = Math.max(5, +e.target.value || 50); S.save(); });
   $('#pGoalT').addEventListener('change', e => { S.goal.text = e.target.value.trim(); S.save(); });
   $('#pGoalReset').addEventListener('click', () => { P.real = 0; PR.save(); fillParent(); });
+
+  /* φάκελος */
+  const profInfo = () => { $('#pProfInfo').textContent = `${(S.profile || '').length} χαρακτήρες`; };
+  $('#pProfile').addEventListener('change', e => { S.profile = e.target.value.slice(0, 20000); S.save(); profInfo(); });
+  $('#pGoals').addEventListener('change', e => { S.goals = e.target.value.slice(0, 3000); S.save(); });
+  $('#pToday').addEventListener('change', e => { S.todayNote = { d: DB.store.today(), t: e.target.value.trim() }; S.save(); });
+  $('#pProfFile').addEventListener('change', async e => {
+    const files = [...e.target.files]; e.target.value = '';
+    for (const f of files) { if (f.size > 2 * 1048576) { alert(f.name + ': πολύ μεγάλο αρχείο'); continue; } const t = await f.text(); S.profile = ((S.profile || '') + '\n\n' + t).trim(); }
+    S.save(); $('#pProfile').value = S.profile; profInfo();
+    if (S.profile.length > 6000) $('#pProfInfo').textContent += ' – πολύ μεγάλο: πάτα «Σύνοψη με AI»';
+  });
+  $('#pProfSum').addEventListener('click', async () => {
+    const t = $('#pProfile').value.trim(); if (!t) return;
+    $('#pProfInfo').textContent = 'Γράφω σύνοψη…';
+    try { const out = await A.summarizeProfile(t); if (confirm('Να αντικαταστήσω τον φάκελο με τη σύνοψη;\n\n' + out.slice(0, 900) + (out.length > 900 ? '…' : ''))) { S.profile = out; S.save(); $('#pProfile').value = out; } profInfo(); }
+    catch (er) { $('#pProfInfo').textContent = 'Σφάλμα: ' + er.message; }
+  });
 
   /* τραγούδια */
   async function fillSongs() {
@@ -288,10 +324,10 @@ window.DB = window.DB || {};
     $('#pProvider').value = S.provider; $('#pKey').value = S.apiKey; $('#pModel').value = S.model;
     $('#pAi').checked = S.aiOn; $('#pCam').checked = S.camOn; $('#pPitch').value = S.pitch; $('#pRate').value = S.rate; $('#pKeep').checked = S.keepAlive;
     $('#pName').value = S.childName; $('#pMinutes').value = S.dailyMinutes; $('#pApprove').checked = S.approve;
-    $('#pGoalN').value = S.goal.stars; $('#pJersey').value = S.jersey == null ? 7 : S.jersey; $('#pSongs').checked = S.songs !== false; fillSongs(); $('#pMaxM').value = S.maxMissions || 5; $('#pGoalT').value = S.goal.text || '';
+    $('#pGoalN').value = S.goal.stars; $('#pProfile').value = S.profile || ''; $('#pGoals').value = S.goals || ''; $('#pToday').value = S.todayNote && S.todayNote.d === DB.store.today() ? S.todayNote.t : ''; profInfo(); $('#pTeam').value = S.teamName || 'DimiBots'; $('#pJersey').value = S.jersey == null ? 7 : S.jersey; $('#pSongs').checked = S.songs !== false; fillSongs(); $('#pMaxM').value = S.maxMissions || 5; $('#pGoalT').value = S.goal.text || '';
     $('#pCats').innerHTML = Object.keys(CAT_N).map(k => `<label class="sw2"><input type="checkbox" data-cat="${k}" ${S.cats[k] ? 'checked' : ''}> ${CAT_N[k]}</label>`).join('');
     $('#pUsed').textContent = `Σήμερα: ${DB.usage.minutes()} από ${S.dailyMinutes} λεπτά.`;
-    $('#pVoiceName').textContent = 'Φωνές: ' + V.voiceName();
+    $('#pVoiceName').textContent = 'Φωνές tablet: ' + V.voiceName(); fillVoice();
     const lines = DB.log.todayLines(); $('#pLog').innerHTML = lines.length ? lines.map(esc).join('<br>') : 'Τίποτα ακόμα σήμερα.';
     const st = DB.ai_stats || {};
     if (st.last) $('#pLog').innerHTML += `<br><span class="note">Τελευταία απάντηση AI: ${esc(st.last)}, πρώτη λέξη σε ${(st.ms / 1000).toFixed(1)} δευτ.</span>`;
@@ -325,6 +361,6 @@ window.DB = window.DB || {};
   DB.garage.init(); DB.play.init();
   hud(); chips(); show('home');
   if (S.keepAlive) document.addEventListener('pointerdown', () => V.keepAlive(true), { once: true });
-  setTimeout(() => R.setBubble(MI.today() && MI.today().done ? `Γεια σου ${S.childName}! Η σημερινή αποστολή ολοκληρώθηκε. Πάμε για παιχνίδι;` : `Γεια σου ${S.childName}! Έτοιμος για τη σημερινή αποστολή;`), 300);
+  setTimeout(() => R.setBubble(`Γεια σου ${S.childName}, συμπαίκτη! Έτοιμος για αγώνα;`), 300);
   if ('serviceWorker' in navigator && location.protocol === 'https:' && !/claude|anthropic/.test(location.hostname)) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();

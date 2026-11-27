@@ -273,7 +273,7 @@ window.DB = window.DB || {};
   async function say(text, opts = {}) {
     bubble.textContent = String(text).replace(/[{}]/g, '');
     bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop');
-    await V.speak(text);
+    await V.speak(text, opts);
   }
   function stopAll(soft) { gen++; rest(); V.stop(); V.stopSong(); if (DB.music) DB.music.stop(); if (soft) { eyes('normal'); return; } eyes('x'); setTimeout(() => { if (mood === 'x') eyes('normal'); }, 1400); }
   function mount(el) { if (el && wrap.parentNode !== el) { el.appendChild(wrap); applyLook(); } }
@@ -294,11 +294,11 @@ window.DB = window.DB || {};
   })();
 
   /* γαργαλητό */
-  const TICKLE = ['Χαχα! Γαργαλιέμαι στα κυκλώματα!', 'Εδώ είμαι, καπετάνιε!', 'Μπιπ μπουπ! Έτοιμος για δράση!', 'Ωχ! Αυτό ήταν το κουμπί του γέλιου μου!', 'Πάμε για αποστολή;'];
+  const TICKLE = ['Χαχα! Γαργαλιέμαι στα κυκλώματα!', 'Μπουρπ! Ωπ, συγγνώμη… ήπια πολύ λάδι!', 'Μπιπ μπουπ! Έτοιμος για δράση!', 'Ωχ! Αυτό ήταν το κουμπί του γέλιου μου!', 'Αψού! Μου μπήκε σκόνη στις βίδες!', 'Πάμε για αγώνα, συμπαίκτη;', 'Πατάς τη μύτη μου; Μπιιιιπ!'];
   let tk = 0;
   q('.bot').addEventListener('click', () => {
     if (DB.app && DB.app.busy) return;
-    DB.app.run(async () => { const t = TICKLE[tk++ % TICKLE.length]; const m = run(tk % 2 ? 'HAPPY' : 'SPIN'); await Promise.all([say(t), m]); });
+    DB.app.run(async () => { const t = TICKLE[tk++ % TICKLE.length]; if (/Μπουρπ|Αψού|Μπιιιιπ/.test(t)) V.sfx.boing(); const m = run(['HAPPY', 'SPIN', 'SURPRISE', 'DUNK'][tk % 4]); await Promise.all([say(t), m]); });
   });
 
   applyLook(); eyes('normal');

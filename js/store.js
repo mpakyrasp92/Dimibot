@@ -32,6 +32,15 @@ window.DB = window.DB || {};
     maxMissions: 5,
     jersey: 7,
     songs: true,
+    ttsEngine: 'gemini',   // 'gemini' = πιο ζωντανή φωνή από το Gemini, 'device' = φωνή του tablet
+    ttsVoice: 'Leda',
+    ttsRate: 1.08,
+    ttsRobot: false,
+    ttsScope: 'all',       // 'all' ή 'chat' (μόνο στη συζήτηση)
+    deviceVoice: '',
+    profile: '',          // «φάκελος» του παιδιού από τους γονείς (ελεύθερο κείμενο)
+    goals: '',            // στόχοι συμπεριφοράς
+    todayNote: { d: '', t: '' },
     pin: '',
     cats: { routine: true, letters: true, english: true, world: true },
     approve: true,
