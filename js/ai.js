@@ -107,7 +107,7 @@ ${facts}
   /* κλήση με ροή: καλεί onSentence(πρόταση) για κάθε ολοκληρωμένη πρόταση */
   async function geminiStream(contents, onSentence) {
     const ctl = new AbortController(); let first = false;
-    const t1 = setTimeout(() => { if (!first) ctl.abort(); }, 15000), t2 = setTimeout(() => ctl.abort(), 30000);
+    const t1 = setTimeout(() => { if (!first) ctl.abort(); }, 10000), t2 = setTimeout(() => ctl.abort(), 25000);
     const t0 = performance.now();
     let full = '', buf = '', sent = 0;
     const flush = (end) => {
@@ -138,7 +138,7 @@ ${facts}
       stats.last = new Date().toLocaleTimeString('el-GR'); stats.err = '';
       return full || 'Ωπ, αυτό δεν μπορώ να το πω. Πάμε να παίξουμε κάτι άλλο;';
     } catch (e) {
-      stats.err = e.name === 'AbortError' ? 'Το Gemini δεν απάντησε σε 15 δευτερόλεπτα.' : e.message;
+      stats.err = e.name === 'AbortError' ? 'Το Gemini δεν απάντησε σε 10 δευτερόλεπτα.' : e.message;
       throw new Error(stats.err);
     } finally { clearTimeout(t1); clearTimeout(t2); }
   }

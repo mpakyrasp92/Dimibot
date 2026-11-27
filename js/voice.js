@@ -58,7 +58,7 @@ window.DB = window.DB || {};
       const data = await r.json().catch(() => ({}));
       if (r.ok) { const a = findAudio(data); if (!a) throw new Error('Δεν ήρθε ήχος'); return b64(a); }
       const msg = (data.error && data.error.message) || ('HTTP ' + r.status);
-      if (r.status === 429) { cloud.off = DB.store.today(); throw new Error('Τελείωσε το σημερινό δωρεάν όριο φωνής (429)'); }
+      if (r.status === 429) { if (modelIdx < TTS_MODELS.length - 1) { modelIdx++; useLegacy = false; continue; } cloud.off = Date.now() + 60 * 60000; modelIdx = 0; throw new Error('Τελείωσε το δωρεάν όριο φωνής Gemini για τώρα (429). Ξαναδοκιμάζω σε μία ώρα· το όριο μηδενίζεται κάθε μέρα γύρω στις 10:00 το πρωί.'); }
       if ((r.status === 404 || r.status === 400) && !useLegacy) { useLegacy = true; continue; }
       if ((r.status === 404 || r.status === 400 || r.status === 503 || r.status === 500 || /high demand|overloaded/i.test(msg)) && modelIdx < TTS_MODELS.length - 1) { modelIdx++; useLegacy = false; continue; }
       throw new Error(msg);
@@ -78,14 +78,14 @@ window.DB = window.DB || {};
     if (inflight.has(k)) return inflight.get(k);
     const p = (async () => {
       const c = await cacheGet(k); if (c) return c;
-      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 9000); const t0 = performance.now();
+      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 5000); const t0 = performance.now();
       try { const ab = await fetchAudio(text, ctl.signal); cloud.ms = Math.round(performance.now() - t0); cloud.n++; cloud.err = ''; cachePut(k, ab); return ab; }
       finally { clearTimeout(t); }
     })();
     inflight.set(k, p); p.finally(() => inflight.delete(k)).catch(() => {});
     return p;
   }
-  const cloudOn = (chat) => S.ttsEngine === 'gemini' && (S.ttsScope !== 'chat' || chat) && !!S.apiKey && navigator.onLine !== false && cloud.off !== DB.store.today();
+  const cloudOn = (chat) => S.ttsEngine === 'gemini' && (S.ttsScope !== 'chat' || chat) && !!S.apiKey && navigator.onLine !== false && !(cloud.off && Date.now() < cloud.off);
   const plain = t => String(t).replace(/[{}]/g, '').replace(/\s+/g, ' ').trim();
   let src = null, playTok = 0;
   async function cloudSpeak(text) {
@@ -111,10 +111,26 @@ window.DB = window.DB || {};
   function prefetch(text, chat) { if (cloudOn(chat)) { const t = plain(text); if (t && /[\p{L}\p{N}]/u.test(t)) getAudio(t).catch(() => {}); } }
 
   /* Μιλάει. Το κείμενο μπορεί να έχει κομμάτια στα αγγλικά μέσα σε {…}: «Η γάτα λέγεται {cat}!» */
+  /* Γρήγορη λειτουργία: στα παιχνίδια, αν μια φράση δεν είναι ακόμα αποθηκευμένη, μιλάει ΑΜΕΣΩΣ με τη φωνή
+     του tablet και κατεβάζει τη φωνή Gemini στο παρασκήνιο για την επόμενη φορά. Στη συζήτηση περιμένει το Gemini. */
+  const bgQueue = []; let bgBusy = false;
+  function bgFetch(t) {
+    if (bgQueue.includes(t) || bgQueue.length > 40) return;
+    bgQueue.push(t); if (!bgBusy) pump();
+  }
+  async function pump() {
+    bgBusy = true;
+    while (bgQueue.length && cloudOn(true)) { const t = bgQueue.shift(); try { await getAudio(t); } catch (e) {} await wait(400); }
+    bgBusy = false;
+  }
+  async function isCached(t) { const k = keyOf(t); if (mem.has(k)) return true; return !!(await Promise.race([cacheGet(k), wait(120).then(() => null)])); }
   async function speak(text, opts) {
-    if (cloudOn(opts && opts.chat)) {
+    const chat = !!(opts && opts.chat);
+    if (cloudOn(chat)) {
       const t = plain(text);
       if (!t || !/[\p{L}\p{N}]/u.test(t)) return;
+      const fast = !chat && S.ttsWait !== true;
+      if (fast && !(await isCached(t))) { bgFetch(t); return deviceSpeak(text); }
       cloudStop(); if (hasTTS) try { speechSynthesis.cancel(); } catch (e) {}
       talking && talking(true);
       try { await cloudSpeak(t); return; }

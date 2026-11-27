@@ -25,7 +25,7 @@ window.DB = window.DB || {};
     aiOn: true,
     camOn: true,
     pitch: 1.5,
-    rate: 1.0,
+    rate: 1.1,
     keepAlive: false,
     childName: 'Δημήτρη',
     dailyMinutes: 45,

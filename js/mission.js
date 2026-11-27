@@ -118,8 +118,7 @@ window.DB = window.DB || {};
     let gone = false;
     const go = () => { if (gone || my !== token) return; gone = true; V.stop(); M.intro = false; save(); next(); };
     $('#mGo').onclick = go;
-    try { await speak(c.intro, 'HAPPY'); } catch (e) {}
-    setTimeout(go, 600);
+    speak(c.intro, 'HAPPY').catch(() => {}); setTimeout(go, 1600);
   }
 
   /* ---------- ερώτηση πολλαπλής επιλογής ---------- */

@@ -217,18 +217,18 @@ window.DB = window.DB || {};
   bindVal('#pApprove', 'approve'); bindVal('#pTeam', 'teamName', x => x.trim() || 'DimiBots'); bindVal('#pJersey', 'jersey', x => Math.max(0, Math.min(99, parseInt(x) || 0)), () => R.applyLook()); bindVal('#pSongs', 'songs'); bindVal('#pMaxM', 'maxMissions', x => Math.max(1, Math.min(5, +x || 5)));
   $('#pKeep').addEventListener('change', e => { S.keepAlive = e.target.checked; S.save(); V.keepAlive(S.keepAlive); });
   $('#pVoiceTest').addEventListener('click', () => R.say(`Γεια σου ${S.childName}! Είμαι ο DimiBot! Πάμε για αποστολή; And my English: {Hello, my friend!}`, { chat: true }).then(fillVoice));
-  bindVal('#pTtsEngine', 'ttsEngine', x => x, fillVoice); bindVal('#pTtsRate', 'ttsRate', Number); bindVal('#pTtsRobot', 'ttsRobot'); bindVal('#pTtsScope', 'ttsScope');
+  bindVal('#pTtsEngine', 'ttsEngine', x => x, fillVoice); bindVal('#pTtsRate', 'ttsRate', Number); bindVal('#pTtsRobot', 'ttsRobot'); bindVal('#pTtsWait', 'ttsWait'); bindVal('#pTtsScope', 'ttsScope');
   bindVal('#pDevVoice', 'deviceVoice', x => x, () => V.repick());
   $('#pTtsVoices').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (!b) return; S.ttsVoice = b.dataset.v; S.save(); fillVoice(); R.say(`Γεια! Αυτή είναι η φωνή «${b.dataset.n}». Σου αρέσει;`, { chat: true }).then(fillVoice); });
   $('#pTtsClear').addEventListener('click', () => { V.clearCache(); $('#pTtsInfo').textContent = 'Οι αποθηκευμένες φράσεις σβήστηκαν.'; });
   function fillVoice() {
-    $('#pTtsEngine').value = S.ttsEngine || 'gemini'; $('#pTtsRate').value = S.ttsRate || 1.08; $('#pTtsRobot').checked = !!S.ttsRobot; $('#pTtsScope').value = S.ttsScope || 'all';
+    $('#pTtsEngine').value = S.ttsEngine || 'gemini'; $('#pTtsRate').value = S.ttsRate || 1.08; $('#pTtsRobot').checked = !!S.ttsRobot; $('#pTtsWait').checked = !!S.ttsWait; $('#pTtsScope').value = S.ttsScope || 'all';
     $('#pTtsVoices').innerHTML = V.VOICES.map(([v, n]) => `<button class="ghost sm${(S.ttsVoice || 'Leda') === v ? ' sel' : ''}" data-v="${v}" data-n="${n}">${n}</button>`).join('');
     $('#pGemVoice').hidden = S.ttsEngine === 'device';
     const dv = V.greekVoices(); $('#pDevVoice').innerHTML = '<option value="">Αυτόματα</option>' + dv.map(n => `<option ${n === S.deviceVoice ? 'selected' : ''}>${esc(n)}</option>`).join('');
     const st = DB.tts_stats || {};
     $('#pTtsInfo').textContent = S.ttsEngine === 'device' ? 'Μιλάει με τη φωνή του tablet.' : !S.apiKey ? 'Χρειάζεται κλειδί Gemini (κάρτα «Τεχνητή νοημοσύνη»). Μέχρι τότε μιλάει με τη φωνή του tablet.'
-      : st.off === DB.store.today() ? 'Τελείωσε το σημερινό δωρεάν όριο φωνής· μέχρι αύριο μιλάει με τη φωνή του tablet.' : st.err ? 'Τελευταίο πρόβλημα: ' + st.err : st.n ? `Φωνή Gemini: OK (τελευταία φράση σε ${(st.ms / 1000).toFixed(1)} δευτ.)` : 'Πάτα «Άκου τη φωνή» για δοκιμή.';
+      : st.off && Date.now() < st.off ? 'Τελείωσε προσωρινά το δωρεάν όριο φωνής Gemini· μιλάει με τη φωνή του tablet και ξαναδοκιμάζει σε λίγο (το όριο μηδενίζεται καθημερινά γύρω στις 10:00).' : st.err ? 'Τελευταίο πρόβλημα: ' + st.err : st.n ? `Φωνή Gemini: OK (τελευταία φράση σε ${(st.ms / 1000).toFixed(1)} δευτ.)` : 'Πάτα «Άκου τη φωνή» για δοκιμή.';
   }
   $('#pTest').addEventListener('click', async () => {
     $('#pTestOut').textContent = 'Δοκιμή…';

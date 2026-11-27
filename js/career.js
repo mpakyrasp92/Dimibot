@@ -136,8 +136,9 @@ window.DB = window.DB || {};
     area().innerHTML = `<div class="drill"><div class="chip">${half ? 'Ημίχρονο · ' : 'Ζέσταμα · '}${esc(d.title)}</div><div class="dEmo emo">${d.e}</div><div class="dBig" id="dBig"></div><div class="dTxt" id="dTxt"></div><div class="row center" id="dBtns"></div></div>`;
     const big = $('#dBig'), txt = $('#dTxt'), btns = $('#dBtns');
     txt.textContent = d.say;
-    await say(d.say, 'HELLO'); if (!live()) return null;
-    const ready = async () => { btns.innerHTML = '<button class="go big" id="dGo">▶ Έτοιμος!</button>'; await new Promise(r => { $('#dGo').onclick = r; }); btns.innerHTML = ''; };
+    const intro = say(d.say, 'HELLO').catch(() => {});   // δεν περιμένουμε να τελειώσει: το κουμπί εμφανίζεται αμέσως
+    if (!['count', 'timer', 'freeze', 'simon'].includes(d.kind)) { await intro; if (!live()) return null; }
+    const ready = async () => { btns.innerHTML = '<button class="go big" id="dGo">▶ Έτοιμος!</button>'; await new Promise(r => { $('#dGo').onclick = r; }); V.stop(); btns.innerHTML = ''; };
     const countdown = async () => { for (const k of ['3', '2', '1']) { if (!live()) return; big.textContent = k; V.tone(660, .15); await sleep(700); } big.textContent = 'Πάμε!'; V.tone(990, .3); await sleep(400); };
     const st = car().stats;
 
@@ -252,7 +253,7 @@ window.DB = window.DB || {};
     area().innerHTML = `<div class="qIntro"><div class="qN">${qn}η ΠΕΡΙΟΔΟΣ</div><h2>${title}</h2></div>`;
     V.sfx.whistle();
     let gameP, huntLine = '';
-    try { await say(`${qn === 1 ? 'Τζάμπολ! ' : ''}${title.replace(/^\S+ /, '')} ${line}`); } catch (e) {}
+    say(`${qn === 1 ? 'Τζάμπολ! ' : ''}${title.replace(/^\S+ /, '')} ${line}`).catch(() => {}); await sleep(1400);
     if (!live()) return;
     if (subj === 'letters') gameP = A().whack(area(), live, 'letters', lv.letters, { hits: 5, skin: '🏀' });
     else if (subj === 'numbers') gameP = A().hoop(area(), live, lv.numbers, { hits: 4, quiet: true });
