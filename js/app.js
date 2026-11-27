@@ -85,12 +85,12 @@ window.DB = window.DB || {};
     $('#hello').textContent = `${h < 12 ? 'Καλημέρα' : h < 18 ? 'Γεια σου' : 'Καλησπέρα'}, ${S.childName.replace(/η$/, 'η')}!`;
     const m = MI.today(), cats = Object.keys(MI.CATS).filter(k => S.cats[k]);
     const active = m && !m.done && !m.practice ? m : null;
-    const n = PR.doneToday(), max = Math.max(1, Math.min(5, +S.maxMissions || 5));
+    const n = PR.doneToday(), max = Math.max(1, Math.min(15, +S.maxMissions || 5));
     const showCats = active ? active.steps.map(s => s.cat) : cats.filter(k => k !== 'routine' || n === 0);
     $('#homePlanets').innerHTML = showCats.map((k, i) => { const c = MI.CATS[k], done = active && i < active.si; return `<div class="planet sm ${done ? 'done' : ''}" style="--pc:${c.col}"><span>${done ? '✓' : c.e}</span><small>${c.short}</small></div>`; }).join('<i class="orbit"></i>')
       + `<i class="orbit"></i><div class="planet sm chest"><span>🎁</span><small>Δώρο</small></div>`;
     const go = $('#homeGo'), pr = $('#homePractice');
-    const dots = Array.from({ length: max }, (_, i) => i < n ? '🟡' : '⚪').join('');
+    const dots = max <= 6 ? Array.from({ length: max }, (_, i) => i < n ? '🟡' : '⚪').join('') : `🟡 ${n}/${max}`;
     if (active) { go.textContent = '🚀 Συνέχισε την αποστολή'; go.disabled = false; pr.hidden = true; $('#homeMNote').textContent = `σταθμός ${Math.min(active.si + 1, active.steps.length)} από ${active.steps.length}`; }
     else if (n >= max) { go.textContent = `✓ Έκανες ${max} αποστολές σήμερα! Τα λέμε αύριο`; go.disabled = true; pr.hidden = false; $('#homeMNote').textContent = `🔥 ${P.streak} ${P.streak === 1 ? 'μέρα' : 'μέρες'} στη σειρά`; }
     else { go.textContent = n === 0 ? '🚀 Ξεκίνα την αποστολή' : `🚀 Νέα αποστολή (${n + 1} από ${max})`; go.disabled = false; pr.hidden = true; $('#homeMNote').textContent = n ? 'Αποστολές σήμερα ' + dots : '5–8 λεπτά'; }
@@ -238,7 +238,7 @@ window.DB = window.DB || {};
   $('#pBrainClear').addEventListener('click', () => { A.clearBrain(); brainInfo(); });
   bindVal('#pAi', 'aiOn', x => x, chips); bindVal('#pCam', 'camOn'); bindVal('#pPitch', 'pitch', Number); bindVal('#pRate', 'rate', Number);
   bindVal('#pName', 'childName', x => x.trim() || 'Δημήτρη'); bindVal('#pMinutes', 'dailyMinutes', x => Math.max(5, +x || 45));
-  bindVal('#pApprove', 'approve'); bindVal('#pTeam', 'teamName', x => x.trim() || 'DimiBots'); bindVal('#pJersey', 'jersey', x => Math.max(0, Math.min(99, parseInt(x) || 0)), () => R.applyLook()); bindVal('#pSongs', 'songs'); bindVal('#pMaxM', 'maxMissions', x => Math.max(1, Math.min(5, +x || 5)));
+  bindVal('#pApprove', 'approve'); bindVal('#pTeam', 'teamName', x => x.trim() || 'DimiBots'); bindVal('#pJersey', 'jersey', x => Math.max(0, Math.min(99, parseInt(x) || 0)), () => R.applyLook()); bindVal('#pSongs', 'songs'); bindVal('#pMaxM', 'maxMissions', x => Math.max(1, Math.min(15, +x || 5)));
   $('#pKeep').addEventListener('change', e => { S.keepAlive = e.target.checked; S.save(); V.keepAlive(S.keepAlive); });
   $('#pVoiceTest').addEventListener('click', () => R.say(`Γεια σου ${S.childName}! Είμαι ο DimiBot! Πάμε για αποστολή; And my English: {Hello, my friend!}`, { chat: true }).then(fillVoice));
   bindVal('#pTtsEngine', 'ttsEngine', x => x, fillVoice); bindVal('#pTtsRate', 'ttsRate', Number); bindVal('#pTtsRobot', 'ttsRobot'); bindVal('#pTtsWait', 'ttsWait'); bindVal('#pTtsScope', 'ttsScope');

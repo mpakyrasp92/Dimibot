@@ -52,7 +52,7 @@ window.DB = window.DB || {};
   const save = () => PR.save();
   const today = () => DB.store.today();
   function playedToday() { const c = car(); return c.day.d === today() ? c.day.n : 0; }
-  const maxToday = () => Math.max(1, Math.min(5, +S.maxMissions || 5));
+  const maxToday = () => Math.max(1, Math.min(15, +S.maxMissions || 5));
   const isFinal = () => car().round >= TEAMS.length;
   function nextOpp() { const c = car(); if (isFinal()) { return standings().filter(r => r.id !== 'me')[0].id; } return c.order[c.round]; }
   function standings() {
@@ -351,7 +351,7 @@ window.DB = window.DB || {};
   function drawHomeCard() {
     const c = car(), op = team(nextOpp()), me = ME(), n = playedToday(), max = maxToday();
     const cur = c.match && c.match.day === today() && !c.match.done;
-    const dots = Array.from({ length: max }, (_, i) => i < n ? '🏀' : '⚪').join('');
+    const dots = max <= 6 ? Array.from({ length: max }, (_, i) => i < n ? '🏀' : '⚪').join('') : `🏀 ${n}/${max}`;
     $('#homeMatch').innerHTML = `<div class="mTop"><span class="chip gold">${isFinal() ? '🏆 Τελικός κυπέλλου' : `Αγωνιστική ${c.round + 1}/${TEAMS.length} · Σεζόν ${c.season}`}</span><span class="note">Σήμερα ${dots}</span></div>
       <div class="vsRow"><div class="vsT">${meIcon()}<b>${esc(me.name)}</b><small>${c.table.me.w}Ν – ${c.table.me.l}Η</small></div><div class="vs">VS</div><div class="vsT"><span class="emo">${op.e}</span><b>${esc(op.name)}</b><small>${c.table[op.id].w}Ν – ${c.table[op.id].l}Η</small></div></div>
       <button class="go big" id="cGo" ${!cur && n >= max ? 'disabled' : ''}>${cur ? '🏀 Συνέχισε τον αγώνα' : n >= max ? `✓ ${max} αγώνες σήμερα! Τα λέμε αύριο` : '🏀 Πάμε για αγώνα!'}</button>

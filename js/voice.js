@@ -92,7 +92,9 @@ window.DB = window.DB || {};
     const my = ++playTok;
     const ab = await getAudio(text);
     if (my !== playTok) return;
-    const a = ctx(); if (a.state === 'suspended') await a.resume().catch(() => {});
+    const a = ctx();
+    if (a.state !== 'running') { try { await Promise.race([a.resume(), wait(400)]); } catch (e) {} }
+    if (a.state !== 'running') throw new Error('Ο ήχος του tablet ήταν σε αναμονή· μίλησα με τη φωνή του tablet.'); // αλλιώς θα «έπαιζε» βουβά
     const buf = await toBuffer(ab);
     if (my !== playTok) return;
     await new Promise(res => {
@@ -103,8 +105,8 @@ window.DB = window.DB || {};
         mod.frequency.value = 38; mg.gain.value = .35; g.gain.value = .75; mod.connect(mg).connect(g.gain); mod.start(); s.connect(g); out = g; s.onended0 = () => mod.stop();
       }
       out.connect(a.destination);
-      s.onended = () => { if (s.onended0) s.onended0(); if (src === s) src = null; res(); };
-      src = s; s.start();
+      let fin = false; s.onended = () => { if (fin) return; fin = true; if (s.onended0) s.onended0(); if (src === s) src = null; res(); };
+      src = s; s.start(); setTimeout(() => s.onended && s.onended(), (buf.duration / (+S.ttsRate || 1.08)) * 1000 + 1500); // ασφάλεια: να μη «κολλήσει» ποτέ
     });
   }
   function cloudStop() { playTok++; if (src) { try { src.stop(); } catch (e) {} src = null; } }
@@ -131,6 +133,10 @@ window.DB = window.DB || {};
       if (!t || !/[\p{L}\p{N}]/u.test(t)) return;
       const fast = !chat && S.ttsWait !== true;
       if (fast && !(await isCached(t))) { bgFetch(t); return deviceSpeak(text); }
+      if (chat && S.ttsWait !== true && !(await isCached(t))) { // συζήτηση: περιμένει τη φωνή Gemini το πολύ 2,5 δευτ.
+        const ready = await Promise.race([getAudio(t).then(() => true, () => false), wait(2500).then(() => false)]);
+        if (!ready) { cloud.slow = (cloud.slow || 0) + 1; return deviceSpeak(text); }
+      }
       cloudStop(); if (hasTTS) try { speechSynthesis.cancel(); } catch (e) {}
       talking && talking(true);
       try { await cloudSpeak(t); return; }
@@ -162,6 +168,7 @@ window.DB = window.DB || {};
         if (en) { u.lang = 'en-US'; if (english) u.voice = english; u.rate = 0.85; u.pitch = Math.min(1.4, +S.pitch || 1.4); }
         else { u.lang = 'el-GR'; if (greek) u.voice = greek; u.pitch = +S.pitch || 1.5; u.rate = +S.rate || 1; }
         u.onend = end; u.onerror = end;
+        try { speechSynthesis.resume(); } catch (e) {} // στο Android μένει κάποιες φορές «σε παύση» και δεν μιλάει
         speechSynthesis.speak(u);
       } catch (e) { end(); }
       setTimeout(end, guess + 6000);

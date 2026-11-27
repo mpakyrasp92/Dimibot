@@ -85,7 +85,7 @@ ${facts}
     }
   }
   /* χρονόμετρα: αν δεν έρθει πρώτη λέξη σε 8 δευτ., ή όλο σε 25 δευτ., ακυρώνει */
-  function timers(ctl) { let first = false; const t0 = performance.now(); const a = setTimeout(() => { if (!first) ctl.abort(); }, 8000), b = setTimeout(() => ctl.abort(), 25000);
+  function timers(ctl) { let first = false; const t0 = performance.now(); const a = setTimeout(() => { if (!first) ctl.abort(); }, 6000), b = setTimeout(() => ctl.abort(), 25000);
     return { got() { if (!first) { first = true; stats.ms = Math.round(performance.now() - t0); } }, clear() { clearTimeout(a); clearTimeout(b); } }; }
   const errText = (e, name) => e.name === 'AbortError' ? `Το ${name} άργησε να απαντήσει.` : /Failed to fetch|NetworkError|Load failed/i.test(e.message) ? `Δεν υπάρχει σύνδεση με το ${name} (δίκτυο ή μπλοκάρισμα).` : e.message;
 
