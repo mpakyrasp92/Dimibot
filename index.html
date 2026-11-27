@@ -71,6 +71,10 @@
         <button class="mode" data-g="workshop" aria-pressed="true"><span class="emo">🧩</span>Εργαστήρι</button>
         <button class="mode" data-g="maze" aria-pressed="false"><span class="emo">🗺️</span>Λαβύρινθος</button>
         <button class="mode" data-g="simon" aria-pressed="false"><span class="emo">🧠</span>Μνήμη</button>
+        <button class="mode" data-g="pairs" aria-pressed="false"><span class="emo">🃏</span>Ζευγάρια</button>
+        <button class="mode" data-g="whack" aria-pressed="false"><span class="emo">👾</span>Εξωγήινοι</button>
+        <button class="mode" data-g="sortg" aria-pressed="false"><span class="emo">🧺</span>Καλάθια</button>
+        <button class="mode" data-g="hoopg" aria-pressed="false"><span class="emo">🏀</span>Μπάσκετ</button>
       </div>
       <div class="game" id="g-workshop">
         <p class="note">Το πρόγραμμά σου:</p>
@@ -85,6 +89,10 @@
         <div class="arrows" id="arrows"></div>
         <div class="row"><button class="go" id="mazeRun">▶ Πάμε!</button><button class="ghost" id="mazeUndo">⌫ Σβήσε</button><button class="ghost" id="mazeReset">↺ Από την αρχή</button></div>
       </div>
+      <div class="game free" id="g-pairs" hidden></div>
+      <div class="game free" id="g-whack" hidden></div>
+      <div class="game free" id="g-sortg" hidden></div>
+      <div class="game free" id="g-hoopg" hidden></div>
       <div class="game" id="g-simon" hidden>
         <div class="lvlRow"><b id="simonLvl">Πάτα «Ξεκίνα»</b><b id="simonBest">Ρεκόρ: 0</b></div>
         <div class="pads" id="pads"></div>
@@ -125,6 +133,7 @@
         <summary>Αποστολή και στόχος</summary>
         <p class="note">Ποιοι «πλανήτες» μπαίνουν στην ημερήσια αποστολή:</p>
         <div class="row wrap" id="pCats"></div>
+        <label>Μέγιστες αποστολές την ημέρα (1–5) <input id="pMaxM" type="number" min="1" max="5" step="1" class="small"></label>
         <label>Στόχος με πραγματική ανταμοιβή: αστέρια <input id="pGoalN" type="number" min="5" max="500" step="5" class="small"></label>
         <label>Ανταμοιβή (π.χ. «Βόλτα στο λούνα παρκ») <input id="pGoalT" placeholder="Άφησέ το κενό αν δεν θέλεις"></label>
         <div class="row"><button class="ghost" id="pGoalReset">Ο στόχος επιτεύχθηκε – ξεκίνα από την αρχή</button></div>
@@ -132,9 +141,17 @@
       <details class="card">
         <summary>Χρόνος και όνομα</summary>
         <label>Όνομα παιδιού, όπως το φωνάζουμε (π.χ. Δημήτρη) <input id="pName" autocomplete="off"></label>
+        <label>Αριθμός στη φανέλα του DimiBot <input id="pJersey" type="number" min="0" max="99" class="small"></label>
         <label>Λεπτά οθόνης την ημέρα <input id="pMinutes" type="number" min="5" max="240" step="5" class="small"></label>
         <p class="note" id="pUsed"></p>
         <div class="row"><button class="ghost" id="pResetToday">Μηδένισε τον σημερινό χρόνο</button><button class="ghost" id="pNewPin">Άλλαξε PIN</button></div>
+      </details>
+      <details class="card">
+        <summary>Τραγούδια για τον χορό</summary>
+        <p class="note">Πρόσθεσε τραγούδια που έχεις στο tablet (mp3, m4a). Μένουν μόνο εδώ, δεν ανεβαίνουν πουθενά. Όταν χορεύει, ο DimiBot παίζει ένα τυχαίο κομμάτι για 14 δευτερόλεπτα.</p>
+        <label class="sw2"><input type="checkbox" id="pSongs"> Χορός με τα δικά μας τραγούδια</label>
+        <div id="pSongList"></div>
+        <div class="row"><label class="ghost fileBtn">➕ Πρόσθεσε τραγούδια<input type="file" id="pSongAdd" accept="audio/*" multiple hidden></label><button class="ghost" id="pSongTest">▶ Δοκιμή χορού</button></div>
       </details>
       <details class="card">
         <summary>Τεχνητή νοημοσύνη</summary>
@@ -207,10 +224,12 @@
 
 <script src="js/store.js"></script>
 <script src="js/voice.js"></script>
+<script src="js/music.js"></script>
 <script src="js/progress.js"></script>
 <script src="js/content.js"></script>
 <script src="js/robot.js"></script>
 <script src="js/ai.js"></script>
+<script src="js/arcade.js"></script>
 <script src="js/mission.js"></script>
 <script src="js/garage.js"></script>
 <script src="js/play.js"></script>

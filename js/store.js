@@ -29,6 +29,9 @@ window.DB = window.DB || {};
     keepAlive: false,
     childName: 'Δημήτρη',
     dailyMinutes: 45,
+    maxMissions: 5,
+    jersey: 7,
+    songs: true,
     pin: '',
     cats: { routine: true, letters: true, english: true, world: true },
     approve: true,
@@ -55,6 +58,12 @@ window.DB = window.DB || {};
     approve(i) { const t = this.pending.splice(i, 1)[0]; if (t) this.items.push({ k: 'Θυμάμαι', v: t }); this.save(); },
     reject(i) { this.pending.splice(i, 1); this.save(); }
   };
+
+  /* Πρώτες γνώσεις για τον Δημήτρη (ο γονιός τις αλλάζει ή τις σβήνει στο «Τετράδιο») */
+  if (!read('seed_bball', false)) {
+    [['Άθλημα', 'Παίζει μπάσκετ στην ΑΕΚ Περιστερίου'], ['Αγαπημένη ομάδα', 'Το Περιστέρι (ΓΣΠ) – πηγαίνουμε μαζί στο γήπεδο']].forEach(([k, v]) => { if (!memory.items.some(m => m.v === v)) memory.items.push({ k, v }); });
+    memory.save(); write('seed_bball', true);
+  }
 
   /* Χρόνος οθόνης ανά ημέρα */
   const usage = {

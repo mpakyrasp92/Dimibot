@@ -9,33 +9,38 @@ window.DB = window.DB || {};
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   const CATS = {
-    routine: { name: 'Πλανήτης Ρουτίνας', short: 'Ρουτίνες', e: '🏠', col: '#FFB547', intro: 'Πρώτος σταθμός: ο Πλανήτης Ρουτίνας! Για να δούμε τι κατάφερες σήμερα.' },
-    letters: { name: 'Γράμματα & Αριθμοί', short: 'Γράμματα', e: '🔤', col: '#FF6B9A', intro: 'Προσγείωση στον Πλανήτη Γραμμάτων και Αριθμών! Ενεργοποίησε τον εγκέφαλο!' },
-    english: { name: 'Planet English', short: 'English', e: '🗣️', col: '#4FA8FF', intro: 'Welcome to Planet English! Εδώ μιλάμε αγγλικά. Έτοιμος;' },
-    world: { name: 'Πλανήτης Εξερεύνησης', short: 'Εξερεύνηση', e: '🔭', col: '#4ADE80', intro: 'Τελευταίος σταθμός: ο Πλανήτης Εξερεύνησης! Πάμε να ανακαλύψουμε κάτι καινούργιο!' }
+    routine: { name: 'Πλανήτης Ρουτίνας', short: 'Ρουτίνες', e: '🏠', col: '#FFB547', intro: 'Πλανήτης Ρουτίνας!' },
+    letters: { name: 'Γράμματα & Αριθμοί', short: 'Γράμματα', e: '🔤', col: '#FF6B9A', intro: 'Πλανήτης Γραμμάτων! Προσοχή, μετεωρίτες!' },
+    english: { name: 'Planet English', short: 'English', e: '🗣️', col: '#4FA8FF', intro: '{Planet English!}' },
+    world: { name: 'Πλανήτης Εξερεύνησης', short: 'Εξερεύνηση', e: '🔭', col: '#4ADE80', intro: 'Πλανήτης Εξερεύνησης!' }
   };
-  const PRAISE = ['Μπαμ! Σωστό!', 'Είσαι φωτιά!', 'Ο εγκέφαλός σου λάμπει!', 'Τέλεια! Τα κυκλώματά μου σπινθηρίζουν!', 'Ουάου! Ούτε εγώ δεν θα το έβρισκα τόσο γρήγορα!', 'Σούπερ! Πάμε παρακάτω!', 'Ναι! Είσαι πρωταθλητής!'];
+  const PRAISE = ['Μπαμ!', 'Φωτιά!', 'Ναι!', 'Τέλεια!', 'Σούπερ!', 'Ουάου!'];
   const OOPS = ['Χμ, όχι ακριβώς. Δοκίμασε ξανά!', 'Σχεδόν! Ξανακοίτα καλά.', 'Όχι αυτό… αλλά δεν πειράζει, από τα λάθη μαθαίνουμε!', 'Πάμε άλλη μια προσπάθεια, μπορείς!'];
   let pi = 0, oi = 0;
   const praise = () => PRAISE[pi++ % PRAISE.length];
   const oops = () => OOPS[oi++ % OOPS.length];
 
   /* ---------- σχέδιο της ημέρας ---------- */
+  const pickOne = a => a[Math.floor(Math.random() * a.length)];
   function plan(practice) {
     const steps = [];
+    const num = practice ? 0 : PR.doneToday();   // πόσες αποστολές έχει ήδη κάνει σήμερα
     const cats = Object.keys(CATS).filter(k => S.cats[k]);
     if (!cats.length) cats.push('letters');
     cats.forEach(cat => {
-      if (cat === 'routine') steps.push({ cat, items: practice ? ['lesson'] : ['check', 'lesson'] });
-      if (cat === 'letters') steps.push({ cat, items: ['letter', 'number', 'letter', 'number'] });
+      if (cat === 'routine') { if (num === 0 && !practice) steps.push({ cat, items: ['check', 'lesson'] }); }
+      if (cat === 'letters') steps.push({ cat, items: [pickOne(['meteor', 'whackL', 'pairsL']), pickOne(['feed', 'whackN', 'hoop', 'hoop'])] });
       if (cat === 'english') {
         const { fresh, review } = C.englishPlan(P.words, P.lv.english);
-        const quiz = C.shuffle(fresh.concat(review)).slice(0, 3);
-        steps.push({ cat, items: [...(practice ? [] : fresh.map(w => 'learn:' + w[0])), ...quiz.map(w => 'quiz:' + w[0])] });
+        const learn = !practice && num < 2 && fresh.length;   // καινούργιες λέξεις μόνο στις 2 πρώτες αποστολές
+        let words = (learn ? fresh.concat(review) : review).map(w => w[0]);
+        if (words.length < 2) words = words.concat(C.WORDS.slice(0, 3).map(w => w[0])).slice(0, 3);
+        steps.push({ cat, items: learn ? ['words', pickOne(['bubbles', 'pairsE'])] : [pickOne(['bubbles', 'pairsE'])], fresh: learn ? fresh.map(w => w[0]) : [], words });
       }
-      if (cat === 'world') steps.push({ cat, items: ['fact', 'pattern', 'odd'] });
+      if (cat === 'world') steps.push({ cat, items: [pickOne(['hunt', 'sort']), pickOne(['fact', 'pattern', 'odd'])] });
     });
-    return { day: DB.store.today(), steps, si: 0, ii: 0, intro: true, stars: 0, done: false, practice: !!practice };
+    if (!steps.length) steps.push({ cat: 'letters', items: ['meteor', 'feed'] });
+    return { day: DB.store.today(), steps, si: 0, ii: 0, intro: true, stars: 0, done: false, practice: !!practice, num: num + 1 };
   }
   function today() { const m = P.mission; return m && m.day === DB.store.today() ? m : null; }
   const save = () => PR.save();
@@ -57,10 +62,11 @@ window.DB = window.DB || {};
   async function speak(t, cmd) { lastSay = t; const my = token; const a = cmd ? R().run(cmd) : null; await R().say(t); if (a) await a; return my === token; }
 
   function start(practice) {
-    if (practice || !today()) { P.mission = plan(practice); save(); }
+    const cur = today();
+    if (practice || !cur || cur.done || cur.practice) { P.mission = plan(practice); save(); }
     M = P.mission; DB.app.show('mission'); next();
   }
-  function resume() { M = today(); if (!M) return start(false); DB.app.show('mission'); next(); }
+  function resume() { M = today(); if (!M || M.done || M.practice) return start(false); DB.app.show('mission'); next(); }
 
   /* προχωράει στο επόμενο κομμάτι της αποστολής */
   async function next() {
@@ -74,6 +80,18 @@ window.DB = window.DB || {};
     const [type, arg] = item.split(':');
     if (type === 'check') return checklist(my);
     if (type === 'lesson') return order(C.lessonQ(P.seen.lesson), my);
+    const alive = () => my === token, A = DB.arcade;
+    if (type === 'meteor') return game(A.meteors(area(), alive, P.lv.letters), my, 'Τα έπιασες όλα!');
+    if (type === 'feed') return game(A.feed(area(), alive, P.lv.numbers), my, 'Μπαταρίες στο φουλ!');
+    if (type === 'words') return A.meetWords(area(), alive, step.fresh).then(() => { if (alive()) advance(); });
+    if (type === 'bubbles') return game(A.bubbles(area(), alive, step.words, P.lv.english), my, '{Great job!}');
+    if (type === 'hunt') { P.seen.hunt = (P.seen.hunt || 0) + 1; return game(A.hunt(area(), alive, P.lv.world, P.seen.hunt), my, 'Τι κυνηγός!'); }
+    if (type === 'hoop') return game(A.hoop(area(), alive, P.lv.numbers), my, 'Τι σουτέρ! Σαν παίκτης του Περιστερίου!');
+    if (type === 'whackL') return game(A.whack(area(), alive, 'letters', P.lv.letters), my, 'Μπαμ! Τους έπιασες όλους!');
+    if (type === 'whackN') return game(A.whack(area(), alive, 'numbers', P.lv.numbers), my, 'Τι γρήγορα χέρια!');
+    if (type === 'pairsL') return game(A.pairs(area(), alive, 'letters', P.lv.letters), my, 'Τι μνήμη!');
+    if (type === 'pairsE') return game(A.pairs(area(), alive, 'english', P.lv.english, step.words), my, '{Super memory!}');
+    if (type === 'sort') { P.seen.sort = (P.seen.sort || 0) + 1; return game(A.sort(area(), alive, P.lv.world, P.seen.sort), my, 'Όλα στη θέση τους!'); }
     if (type === 'letter') return choice(C.letterQ(P.lv.letters), my);
     if (type === 'number') return choice(C.numberQ(P.lv.numbers), my);
     if (type === 'learn') return learn(C.W(arg), my);
@@ -85,12 +103,23 @@ window.DB = window.DB || {};
   }
   function advance() { M.ii++; save(); next(); }
 
+  async function game(promise, my, line) {
+    const r = await promise;
+    if (!r || my !== token) return;
+    const n = Math.max(1, Math.ceil(r.first / 2));
+    gain(n, $('#mArea'));
+    try { await speak(line, 'CHEER'); } catch (e) {}
+    if (my === token) advance();
+  }
   async function intro(step, my) {
     const c = CATS[step.cat];
     area().innerHTML = `<div class="introCard" style="--pc:${c.col}"><div class="bigPlanet"><span>${c.e}</span></div><h2>${esc(c.name)}</h2><button class="go" id="mGo">Πάμε! ➜</button></div>`;
     V.sfx.whoosh();
-    $('#mGo').onclick = () => { if (my !== token) return; V.stop(); M.intro = false; save(); next(); };
+    let gone = false;
+    const go = () => { if (gone || my !== token) return; gone = true; V.stop(); M.intro = false; save(); next(); };
+    $('#mGo').onclick = go;
     try { await speak(c.intro, 'HAPPY'); } catch (e) {}
+    setTimeout(go, 600);
   }
 
   /* ---------- ερώτηση πολλαπλής επιλογής ---------- */
@@ -121,7 +150,7 @@ window.DB = window.DB || {};
         PR.result(q.skill, tries === 0); DB.log.add('right'); if (q.word) PR.wordSeen(q.word, tries === 0);
         if (tries === 0) gain(1, b);
         if (q.fact) P.seen.fact++;
-        try { await speak(`${praise()} ${q.good}`, tries === 0 ? 'HAPPY' : null); } catch (e) {}
+        try { await speak(q.fact ? `${praise()} ${q.good}` : praise(), tries === 0 ? 'HAPPY' : null); } catch (e) {}
         if (my === token) advance();
       } else {
         tries++; b.classList.add('wrong'); V.sfx.wrong(); R().eyes('sad'); DB.log.add('wrong');
@@ -184,7 +213,7 @@ window.DB = window.DB || {};
         if (pos === q.steps.length) {
           P.seen.lesson++; PR.result('routine', mist === 0); if (mist < 2) gain(2, slot);
           R().confetti(60);
-          try { await speak(`${praise()} Τώρα ξέρεις: ${q.steps.map(s => s[1].toLowerCase()).join(', ')}!`, 'CHEER'); } catch (e) {}
+          try { await speak(`${praise()} Τώρα το ξέρεις!`, 'CHEER'); } catch (e) {}
           if (my === token) advance();
         } else { R().setBubble(q.steps[i][1]); V.speak(q.steps[i][1]); }
       } else {
@@ -216,13 +245,13 @@ window.DB = window.DB || {};
       const r = S.routines.find(x => x.id === id);
       const res = PR.routineMark(id); drawChecklist(box, inMission); V.sfx.coin();
       if (res === 'ok') DB.ui.flyStar(box.querySelector(`[data-id="${id}"]`));
-      speak(res === 'ok' ? `Μπράβο! ${r.label}! Ένα αστέρι για σένα!` : `Μπράβο! ${r.label}! Όταν το επιβεβαιώσει ο γονιός, παίρνεις αστέρι!`, 'HAPPY').catch(() => {});
+      speak(res === 'ok' ? 'Μπράβο! Αστέρι!' : 'Μπράβο! Θα το δει ο γονιός!', 'HAPPY').catch(() => {});
     };
   }
   async function checklist(my) {
     area().innerHTML = `<div class="checkCard"><div class="chip">Τι έκανα σήμερα;</div><div id="rBox"></div></div>`;
     const box = $('#rBox'); drawChecklist(box, true); bindChecklist(box, true, my);
-    try { await speak(`Πες μου, ${S.childName}, τι κατάφερες σήμερα; Πάτα ό,τι έκανες!`); } catch (e) {}
+    try { await speak('Τι έκανες σήμερα; Πάτα τα!'); } catch (e) {}
   }
 
   /* ---------- σεντούκι ---------- */
@@ -231,26 +260,28 @@ window.DB = window.DB || {};
     if (kind === 'color') return `<span class="sw big" style="background:linear-gradient(${it.c[0]},${it.c[1]})"></span>`;
     if (kind === 'eyes') return `<span class="sw big eye" style="--e:${it.c}"></span>`;
     if (kind === 'scene') return `<span class="sw big scene sc-${it.id}"></span>`;
+    if (kind === 'shirt' && it.c) return `<span class="jersey" style="--j1:${it.c[0]};--j2:${it.c[1]}">${String(S.jersey || 7).slice(0, 2)}</span>`;
     return `<span class="emo">${it.e}</span>`;
   }
-  const KIND = { color: 'Νέο χρώμα', eyes: 'Νέα μάτια', hat: 'Νέο καπέλο', back: 'Νέο αξεσουάρ', dance: 'Νέος χορός', scene: 'Νέο σκηνικό' };
+  const KIND = { shirt: 'Νέα φανέλα', color: 'Νέο χρώμα', eyes: 'Νέα μάτια', hat: 'Νέο καπέλο', back: 'Νέο αξεσουάρ', dance: 'Νέος χορός', scene: 'Νέο σκηνικό' };
   async function chest() {
     const my = token;
     area().innerHTML = `<div class="chestCard"><button class="chestBtn" id="chest" aria-label="Άνοιξε το σεντούκι"><span class="emo">🎁</span></button><p class="note">Πάτα το δώρο!</p></div>`;
-    try { await speak(`Αποστολή ολοκληρώθηκε, ${S.childName}! Κέρδισες το σεντούκι! Πάτα το να το ανοίξουμε!`, 'CHEER'); } catch (e) {}
+    try { await speak('Αποστολή ολοκληρώθηκε! Άνοιξε το σεντούκι!', 'CHEER'); } catch (e) {}
     $('#chest').onclick = async () => {
       if (my !== token || M.done) return;
       M.done = true; PR.missionDone(); DB.log.add('mission');
-      const g = PR.nextGift(); PR.addStars(3, 'chest'); PR.addXp(40); save();
+      const giftDay = (M.num || 1) === 1 || M.num === 3;
+      const g = giftDay ? PR.nextGift() : null; const bonus = g ? 3 : 5; PR.addStars(bonus, 'chest'); PR.addXp(40); save();
       V.sfx.chest(); R().confetti(180);
       area().innerHTML = `<div class="chestCard open"><div class="gift">${g ? itemPreview(g.kind, g.item) : '<span class="emo">⭐</span>'}</div>
-        <h2>${g ? esc(KIND[g.kind] + ': ' + g.item.name) : '+3 αστέρια!'}</h2>
-        <p class="streak">🔥 ${P.streak} ${P.streak === 1 ? 'μέρα' : 'μέρες'} στη σειρά!</p>
+        <h2>${g ? esc(KIND[g.kind] + ': ' + g.item.name) : '+' + bonus + ' αστέρια!'}</h2>
+        <p class="streak">🔥 ${P.streak} ${P.streak === 1 ? 'μέρα' : 'μέρες'} στη σειρά · Αποστολή ${M.num || 1} από ${S.maxMissions || 5} σήμερα</p>
         <div class="row center">${g && g.kind !== 'dance' ? '<button class="go" id="wear">Φόρα το!</button>' : g ? '<button class="go" id="wear">Δείξε μου τον χορό!</button>' : ''}<button class="ghost" id="done">Τέλος</button></div></div>`;
-      DB.ui.flyStar($('.gift'), 3);
+      DB.ui.flyStar($('.gift'), bonus);
       if ($('#wear')) $('#wear').onclick = () => DB.app.run(async () => { PR.wear(g.kind, g.item.id); if (g.kind === 'dance') await R().run('DANCE'); else { await R().run('SPIN'); await R().say('Πώς μου πάει;'); } });
       $('#done').onclick = () => { V.stop(); DB.app.show('home'); };
-      try { await speak(`Ουάου! ${g ? KIND[g.kind] + ': ' + g.item.name + '!' : 'Τρία αστέρια ακόμα!'} Και ${P.streak === 1 ? 'αυτή είναι η πρώτη σου μέρα' : 'είναι ' + C.NUM[Math.min(10, P.streak)] + ' μέρες στη σειρά'}! Τα λέμε αύριο για νέα αποστολή!`, 'DANCE'); } catch (e) {}
+      try { await speak(`Ουάου! ${g ? g.item.name + '!' : C.NUM[bonus] + ' αστέρια!'}`, 'DANCE'); } catch (e) {}
     };
   }
   async function practiceEnd() {

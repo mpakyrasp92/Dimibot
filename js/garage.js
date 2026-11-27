@@ -3,8 +3,8 @@ window.DB = window.DB || {};
 (function () {
   const $ = s => document.querySelector(s);
   const PR = DB.progress, V = DB.voice, R = () => DB.robot;
-  const KINDS = [['color', 'Χρώμα', '🎨'], ['eyes', 'Μάτια', '👀'], ['hat', 'Καπέλα', '🎩'], ['back', 'Πλάτη', '🎒'], ['dance', 'Χοροί', '🕺'], ['scene', 'Σκηνικό', '🌌']];
-  let kind = 'color', armed = null;
+  const KINDS = [['shirt', 'Φανέλα', '🏀'], ['color', 'Χρώμα', '🎨'], ['eyes', 'Μάτια', '👀'], ['hat', 'Καπέλα', '🎩'], ['back', 'Πλάτη', '🎒'], ['dance', 'Χοροί', '🕺'], ['scene', 'Σκηνικό', '🌌']];
+  let kind = 'shirt', armed = null;
 
   function draw() {
     $('#gTabs').innerHTML = KINDS.map(([k, n, e]) => `<button class="gtab" data-k="${k}" aria-pressed="${k === kind}"><span>${e}</span>${n}</button>`).join('');
@@ -21,7 +21,7 @@ window.DB = window.DB || {};
     if (PR.owns(kind, id)) {
       armed = null; PR.wear(kind, id); V.sfx.pop(); draw();
       if (kind === 'dance') return DB.app.run(() => R().run('DANCE'));
-      return DB.app.run(async () => { await R().run(kind === 'hat' || kind === 'back' ? 'SPIN' : 'HAPPY'); await R().say(['Ουάου! Μου πάει τέλεια!', 'Σούπερ στιλ!', 'Είμαι το πιο κουλ ρομπότ της γειτονιάς!'][Math.floor(Math.random() * 3)]); });
+      return DB.app.run(async () => { await R().run(kind === 'shirt' ? 'DUNK' : kind === 'hat' || kind === 'back' ? 'SPIN' : 'HAPPY'); await R().say(['Ουάου! Μου πάει τέλεια!', 'Σούπερ στιλ!', 'Είμαι το πιο κουλ ρομπότ της γειτονιάς!'][Math.floor(Math.random() * 3)]); });
     }
     if ((it.lvl || 1) > lvl) { V.sfx.wrong(); return DB.app.run(() => R().say(`Αυτό ξεκλειδώνει στο επίπεδο ${it.lvl}! Μάζεψε αστέρια στις αποστολές για να ανέβεις!`)); }
     if (PR.data.stars < it.price) { V.sfx.wrong(); return DB.app.run(() => R().say(`Θέλει ${it.price} αστέρια. Έχεις ${PR.data.stars}. Λίγες αποστολές ακόμα!`)); }

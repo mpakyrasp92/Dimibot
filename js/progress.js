@@ -29,7 +29,15 @@ window.DB = window.DB || {};
       { id: 'pirate', name: 'Πειρατής', e: '🏴‍☠️', price: 14, lvl: 2 },
       { id: 'astro', name: 'Αστροναύτης', e: '🧑‍🚀', price: 18, lvl: 3 },
       { id: 'wizard', name: 'Μάγος', e: '🧙', price: 18, lvl: 4 },
+      { id: 'band', name: 'Περιμετώπιο μπάσκετ', e: '🏀', price: 0 },
       { id: 'crown', name: 'Στέμμα', e: '👑', price: 30, lvl: 6 }
+    ],
+    shirt: [
+      { id: 'none', name: 'Χωρίς φανέλα', e: '🚫', price: 0 },
+      { id: 'aek', name: 'Κίτρινο-μαύρο (η ομάδα μου)', c: ['#FFD200', '#111111'], price: 0 },
+      { id: 'peri', name: 'Κίτρινο-μπλε (Περιστέρι)', c: ['#FFD200', '#1D4E9E'], price: 0 },
+      { id: 'white', name: 'Λευκή', c: ['#FFFFFF', '#1D4E9E'], price: 8 },
+      { id: 'blue', name: 'Μπλε', c: ['#1D4E9E', '#FFD200'], price: 8 }
     ],
     back: [
       { id: 'none', name: 'Τίποτα', e: '🚫', price: 0 },
@@ -58,8 +66,8 @@ window.DB = window.DB || {};
 
   const BASE = {
     stars: 0, total: 0, xp: 0, streak: 0, best: 0, lastDay: '', missions: 0, gift: 0,
-    owned: { color: ['blue'], eyes: ['cyan'], hat: ['none'], back: ['none'], dance: ['robot'], scene: ['space'] },
-    look: { color: 'blue', eyes: 'cyan', hat: 'none', back: 'none', dance: 'robot', scene: 'space' },
+    owned: { color: ['blue'], eyes: ['cyan'], hat: ['none', 'band'], back: ['none'], dance: ['robot'], scene: ['space'], shirt: ['none', 'aek', 'peri'] },
+    look: { color: 'blue', eyes: 'cyan', hat: 'none', back: 'none', dance: 'robot', scene: 'space', shirt: 'none' },
     lv: { letters: 1, numbers: 1, english: 1, world: 1 },   // επίπεδο δυσκολίας ανά δεξιότητα (1–5)
     hist: { letters: [], numbers: [], english: [], world: [] },
     stat: { letters: [0, 0], numbers: [0, 0], english: [0, 0], world: [0, 0], routine: [0, 0] }, // [σωστά, προσπάθειες]
@@ -71,6 +79,8 @@ window.DB = window.DB || {};
   };
   const P = Object.assign(JSON.parse(JSON.stringify(BASE)), read('progress', {}));
   ['owned', 'look', 'lv', 'hist', 'stat', 'seen'].forEach(k => { P[k] = Object.assign({}, BASE[k], P[k]); });
+  /* δώρο καλωσορίσματος μπάσκετ για όσους είχαν ήδη πρόοδο */
+  if (!P.bball) { P.bball = 1; ['aek', 'peri'].forEach(i => { if (!P.owned.shirt.includes(i)) P.owned.shirt.push(i); }); if (!P.owned.hat.includes('band')) P.owned.hat.push('band'); P.owned.shirt = P.owned.shirt || ['none']; }
   const save = () => write('progress', P);
   const listeners = [];
   const emit = (type, data) => listeners.forEach(f => { try { f(type, data); } catch (e) {} });
@@ -129,10 +139,12 @@ window.DB = window.DB || {};
       const yd = y.getFullYear() + '-' + String(y.getMonth() + 1).padStart(2, '0') + '-' + String(y.getDate()).padStart(2, '0');
       P.streak = P.lastDay === yd ? P.streak + 1 : 1; P.best = Math.max(P.best, P.streak); P.lastDay = d;
     }
-    P.missions++; save();
+    if (!P.day || P.day.d !== d) P.day = { d, n: 0 };
+    P.day.n++; P.missions++; save();
   }
 
   /* ρουτίνες της ημέρας */
+  function doneToday() { const d = DB.store.today(); return P.day && P.day.d === d ? P.day.n : 0; }
   function rday() { if (P.routine.day !== today()) { P.routine = { day: today(), st: {} }; save(); } return P.routine.st; }
   function routineMark(id) { const st = rday(); if (st[id]) return st[id]; st[id] = DB.settings.approve ? 'wait' : 'ok'; save(); if (st[id] === 'ok') addStars(1, 'routine'); P.stat.routine[0]++; P.stat.routine[1]++; DB.log.add('routine'); return st[id]; }
   function routineApprove(id) { const st = rday(); if (st[id] === 'wait') { st[id] = 'ok'; save(); addStars(1, 'routine'); return true; } return false; }
@@ -142,7 +154,7 @@ window.DB = window.DB || {};
 
   DB.progress = {
     ITEMS, GIFTS, data: P, save, levelInfo, addStars, addXp, find, owns, own, buy, wear, nextGift, result, missionDone,
-    rday, routineMark, routineApprove, routineUndo, wordSeen,
+    doneToday, rday, routineMark, routineApprove, routineUndo, wordSeen,
     look: () => P.look,
     on(fn) { listeners.push(fn); },
     reset() { Object.keys(P).forEach(k => delete P[k]); Object.assign(P, JSON.parse(JSON.stringify(BASE))); save(); emit('look', P.look); emit('stars', { n: 0 }); }

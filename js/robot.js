@@ -5,7 +5,7 @@
 window.DB = window.DB || {};
 (function () {
   const V = DB.voice, PR = DB.progress;
-  const COMMANDS = ['HELLO', 'WAVE_R', 'WAVE_L', 'HEAD', 'DANCE', 'HAPPY', 'HEART', 'SURPRISE', 'SLEEP', 'THINK', 'CHEER', 'SPIN', 'JUMP', 'STOP'];
+  const COMMANDS = ['HELLO', 'WAVE_R', 'WAVE_L', 'HEAD', 'DANCE', 'HAPPY', 'HEART', 'SURPRISE', 'SLEEP', 'THINK', 'CHEER', 'SPIN', 'JUMP', 'DUNK', 'STOP'];
 
   /* ---------- μάτια και στόμα ---------- */
   const HL = '<circle cx="-7" cy="-13" r="7" fill="#fff" opacity=".9"/><circle cx="8" cy="11" r="3.2" fill="#fff" opacity=".55"/>';
@@ -53,6 +53,7 @@ window.DB = window.DB || {};
       <path d="M150 40 l5 10 11 2 -8 8 2 11 -10-5 -10 5 2-11 -8-8 11-2z" fill="#FFD84D"/>
       <circle cx="222" cy="10" r="5" fill="#FFD84D"/><circle cx="186" cy="64" r="4" fill="#FFD84D"/>
       <ellipse cx="200" cy="86" rx="112" ry="18" fill="#6D4BD0"/>`,
+    band: `<path d="M104 112 Q200 70 296 112 L296 132 Q200 92 104 132Z" class="af"/><path d="M104 120 Q200 80 296 120" stroke="#fff" stroke-width="5" fill="none" opacity=".9"/>`,
     crown: `<path d="M126 86 L136 30 L168 62 L200 18 L232 62 L264 30 L274 86 Z" fill="#FFC93C" stroke="#D99A00" stroke-width="5" stroke-linejoin="round"/>
       <circle cx="200" cy="66" r="9" fill="#FF4D6D"/><circle cx="160" cy="74" r="7" fill="#4FA8FF"/><circle cx="240" cy="74" r="7" fill="#4ADE80"/>
       <circle cx="136" cy="30" r="6" fill="#FFE58A"/><circle cx="200" cy="18" r="6" fill="#FFE58A"/><circle cx="264" cy="30" r="6" fill="#FFE58A"/>`
@@ -68,6 +69,19 @@ window.DB = window.DB || {};
       <rect x="68" y="262" width="40" height="104" rx="20" fill="#CBD5E1" stroke="#8B9BB0" stroke-width="4"/><rect x="292" y="262" width="40" height="104" rx="20" fill="#CBD5E1" stroke="#8B9BB0" stroke-width="4"/>
       <rect class="af" x="68" y="300" width="40" height="14"/><rect class="af" x="292" y="300" width="40" height="14"/></g>`
   };
+
+  /* φανέλα μπάσκετ: χρώμα, δεύτερο χρώμα (ρέλι/αριθμός), αριθμός */
+  function shirtSvg(c1, c2, n) {
+    return `<clipPath id="torsoClip"><ellipse cx="200" cy="338" rx="82" ry="80"/></clipPath>
+      <g clip-path="url(#torsoClip)">
+        <path d="M118 270 L150 262 Q162 300 200 304 Q238 300 250 262 L282 270 L290 420 L110 420Z" fill="${c1}"/>
+        <path d="M150 262 Q162 300 200 304 Q238 300 250 262" stroke="${c2}" stroke-width="8" fill="none"/>
+        <path d="M118 270 Q130 300 132 330 M282 270 Q270 300 268 330" stroke="${c2}" stroke-width="7" fill="none"/>
+        <path d="M110 392 H290" stroke="${c2}" stroke-width="6" opacity=".6"/>
+        <ellipse cx="170" cy="300" rx="24" ry="10" fill="#fff" opacity=".25"/>
+      </g>
+      <text x="200" y="368" text-anchor="middle" font-family="Manrope,Arial,sans-serif" font-weight="800" font-size="52" fill="${c2}" stroke="#fff" stroke-width="3" paint-order="stroke">${n}</text>`;
+  }
 
   /* ---------- σχέδιο ---------- */
   const wrap = document.createElement('div');
@@ -91,9 +105,10 @@ window.DB = window.DB || {};
         <rect x="182" y="240" width="36" height="30" rx="10" fill="#A9B8CA"/>
         <ellipse cx="200" cy="338" rx="82" ry="80" fill="url(#gBody)"/>
         <ellipse cx="168" cy="292" rx="30" ry="15" fill="#fff" opacity=".75"/>
-        <rect x="158" y="304" width="84" height="64" rx="22" fill="url(#gAcc)"/>
+        <g class="chest"><rect x="158" y="304" width="84" height="64" rx="22" fill="url(#gAcc)"/>
         <rect x="166" y="310" width="68" height="14" rx="7" fill="#fff" opacity=".22"/>
-        <circle class="core ef" cx="200" cy="340" r="13" filter="url(#glow)"/>
+        <circle class="core ef" cx="200" cy="340" r="13" filter="url(#glow)"/></g>
+        <g class="accShirt"></g>
         <g class="part p-armL" style="transform-origin:128px 292px"><rect x="96" y="290" width="32" height="84" rx="16" fill="url(#gBody)"/><rect x="96" y="326" width="32" height="10" fill="url(#gAcc)"/><circle cx="112" cy="380" r="20" fill="url(#gAcc)"/><circle cx="105" cy="373" r="6" fill="#fff" opacity=".45"/><circle cx="128" cy="292" r="19" fill="url(#gAcc)"/><circle cx="121" cy="285" r="6" fill="#fff" opacity=".45"/></g>
         <g class="part p-armR" style="transform-origin:272px 292px"><rect x="272" y="290" width="32" height="84" rx="16" fill="url(#gBody)"/><rect x="272" y="326" width="32" height="10" fill="url(#gAcc)"/><circle cx="288" cy="380" r="20" fill="url(#gAcc)"/><circle cx="281" cy="373" r="6" fill="#fff" opacity=".45"/><circle cx="272" cy="292" r="19" fill="url(#gAcc)"/><circle cx="265" cy="285" r="6" fill="#fff" opacity=".45"/></g>
         <g class="part p-head" style="transform-origin:200px 256px">
@@ -123,6 +138,9 @@ window.DB = window.DB || {};
     q('.accHat').innerHTML = HATS[L.hat] || '';
     q('.accBack').innerHTML = BACKS[L.back] || '';
     q('.ant').style.display = HIDE_ANT[L.hat] ? 'none' : '';
+    const sh = L.shirt && L.shirt !== 'none' ? PR.find('shirt', L.shirt) : null;
+    q('.chest').style.display = sh ? 'none' : '';
+    q('.accShirt').innerHTML = sh ? shirtSvg(sh.c[0], sh.c[1], String(DB.settings.jersey || 7).slice(0, 2)) : '';
     const stage = wrap.closest('.stage'); if (stage) stage.dataset.scene = L.scene;
     document.documentElement.dataset.scene = L.scene;
   }
@@ -188,8 +206,18 @@ window.DB = window.DB || {};
   };
   async function dance() {
     const d = PR.look().dance || 'robot';
-    eyes('happy'); V.song(d);
-    try { await DANCES[d](); } finally { rest(); }
+    eyes('happy');
+    let song = null;
+    if (DB.settings.songs !== false && DB.music) { try { song = await DB.music.play(14); } catch (e) { song = null; } }
+    if (!song) V.song(d);
+    try {
+      if (song) {
+        // με αληθινό τραγούδι: χορεύει όσο παίζει, ανακατεύοντας τους χορούς που έχει ξεκλειδώσει
+        const mine = (PR.data.owned.dance || ['robot']).filter(k => DANCES[k]);
+        const t0 = Date.now(); let i = 0;
+        while (Date.now() - t0 < 13500 && DB.music.playing()) { await DANCES[i++ === 0 ? d : mine[Math.floor(Math.random() * mine.length)]](); }
+      } else await DANCES[d]();
+    } finally { rest(); if (song) DB.music.stop(); }
     await sleep(200); eyes('normal'); DB.log.add('dance');
   }
 
@@ -206,6 +234,7 @@ window.DB = window.DB || {};
         case 'DANCE': await dance(); break;
         case 'HAPPY': eyes('happy'); await jump(1); eyes('normal'); break;
         case 'JUMP': await jump(2); break;
+        case 'DUNK': eyes('star'); set('armR', 'rotate(-170deg)'); set('armL', 'rotate(40deg)'); set('legL', 'scaleY(.85)'); set('legR', 'scaleY(.85)'); await sleep(160); set('legL', ''); set('legR', ''); set('bot', 'translateY(-60px)'); await sleep(320); set('armR', 'rotate(-120deg)'); set('bot', 'translateY(-50px)'); await sleep(120); set('bot', ''); await sleep(280); rest(); eyes('normal'); break;
         case 'SPIN': eyes('happy'); await spin(); eyes('normal'); break;
         case 'HEART': eyes('heart'); set('armL', 'rotate(30deg)'); set('armR', 'rotate(-30deg)'); await sleep(1400); rest(); eyes('normal'); break;
         case 'SURPRISE': eyes('surprise'); V.sfx.boing(); set('bot', 'translateY(-18px)'); set('armL', 'rotate(60deg)'); set('armR', 'rotate(-60deg)'); await sleep(380); rest(); await sleep(600); eyes('normal'); break;
@@ -246,7 +275,7 @@ window.DB = window.DB || {};
     bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop');
     await V.speak(text);
   }
-  function stopAll(soft) { gen++; rest(); V.stop(); V.stopSong(); if (soft) { eyes('normal'); return; } eyes('x'); setTimeout(() => { if (mood === 'x') eyes('normal'); }, 1400); }
+  function stopAll(soft) { gen++; rest(); V.stop(); V.stopSong(); if (DB.music) DB.music.stop(); if (soft) { eyes('normal'); return; } eyes('x'); setTimeout(() => { if (mood === 'x') eyes('normal'); }, 1400); }
   function mount(el) { if (el && wrap.parentNode !== el) { el.appendChild(wrap); applyLook(); } }
 
   /* ---------- ζωντάνια όταν δεν κάνει τίποτα ---------- */

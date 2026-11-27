@@ -30,7 +30,7 @@ window.DB = window.DB || {};
     } finally { talking && talking(false); }
   }
   function one(text, en) {
-    text = text.trim(); if (!text) return Promise.resolve();
+    text = text.trim(); if (!text || !/[\p{L}\p{N}]/u.test(text)) return Promise.resolve();
     const guess = Math.max(900, text.length * 75);
     if (!hasTTS) return wait(guess);
     return new Promise(res => {

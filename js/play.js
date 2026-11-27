@@ -15,6 +15,7 @@ window.DB = window.DB || {};
     head: { e: '🙃', label: 'Κεφάλι', col: MOVE, go: () => R().run('HEAD') },
     jump: { e: '🦘', label: 'Άλμα', col: MOVE, go: () => R().run('JUMP') },
     spin: { e: '🌀', label: 'Σβούρα', col: MOVE, go: () => R().run('SPIN') },
+    dunk: { e: '🏀', label: 'Κάρφωμα', col: MOVE, go: () => R().run('DUNK') },
     dance: { e: '🕺', label: 'Χορός', col: MOVE, go: () => R().run('DANCE') },
     joke: { e: '😂', label: 'Αστείο', col: TALK, go: async () => { R().eyes('happy'); await R().say(C.JOKES[Math.floor(Math.random() * C.JOKES.length)]); R().eyes('normal'); DB.log.add('joke'); } },
     heart: { e: '💖', label: 'Καρδούλες', col: TALK, go: () => R().run('HEART') },
@@ -53,7 +54,7 @@ window.DB = window.DB || {};
   const LEVELS = [
     { s: [0, 2], g: [3, 2], r: [] }, { s: [2, 4], g: [2, 0], r: [] }, { s: [0, 4], g: [4, 4], r: [[2, 4]] },
     { s: [0, 0], g: [4, 4], r: [[1, 1], [2, 2], [3, 3]] }, { s: [0, 2], g: [4, 2], r: [[2, 1], [2, 2], [2, 3]] },
-    { s: [4, 4], g: [0, 0], r: [[1, 0], [1, 1], [3, 3], [3, 4], [2, 2]] }, { s: [0, 0], g: [4, 0], r: [[1, 0], [1, 1], [3, 0], [3, 1], [3, 2]] },
+    { s: [4, 4], g: [0, 0], r: [[1, 0], [1, 1], [3, 3], [3, 4], [2, 1]] }, { s: [0, 0], g: [4, 0], r: [[1, 0], [1, 1], [3, 0], [3, 1], [3, 2]] },
     { s: [2, 2], g: [0, 4], r: [[1, 2], [1, 3], [2, 3], [0, 2]] }, { s: [0, 4], g: [4, 0], r: [[0, 2], [1, 2], [2, 2], [3, 0], [3, 1], [4, 3]] },
     { s: [2, 0], g: [2, 4], r: [[1, 1], [2, 1], [3, 1], [1, 3], [2, 3], [3, 3], [0, 2]] }, { s: [0, 0], g: [4, 4], r: [[0, 1], [1, 1], [2, 1], [3, 3], [4, 3], [2, 3], [1, 3]] },
     { s: [4, 2], g: [0, 2], r: [[3, 1], [3, 2], [3, 3], [1, 0], [1, 1], [1, 2], [1, 4]] }
@@ -153,13 +154,35 @@ window.DB = window.DB || {};
     });
   }
 
-  const INTRO = { maze: 'Βοήθησέ με να βρω την μπαταρία! Πρόσεχε τους μετεωρίτες!', simon: 'Θα κάνω κινήσεις. Μπορείς να τις θυμηθείς;', workshop: 'Βάλε κάρτες στη σειρά και πάτα Πάμε. Εσύ με προγραμματίζεις!' };
+  /* ---------- ελεύθερο παιχνίδι με τα μίνι παιχνίδια της αποστολής ---------- */
+  let freeTok = 0;
+  async function freePlay(g) {
+    const my = ++freeTok, alive = () => my === freeTok && !$('#g-' + g).hidden && DB.app.view === 'games';
+    const el = $('#g-' + g), A = DB.arcade, P = PR.data;
+    el.innerHTML = '<div class="mArea free"></div>';
+    const area = el.firstChild;
+    let r = null;
+    if (g === 'pairs') r = await A.pairs(area, alive, Math.random() < .5 ? 'english' : 'letters', P.lv.english, Object.keys(P.words).slice(-4));
+    if (g === 'whack') r = await A.whack(area, alive, Math.random() < .5 ? 'letters' : 'numbers', P.lv.letters);
+    if (g === 'sortg') r = await A.sort(area, alive, P.lv.world, Math.floor(Math.random() * 8));
+    if (g === 'hoopg') r = await A.hoop(area, alive, P.lv.numbers);
+    if (!r || !alive()) return;
+    DB.log.add('freeplay');
+    if (capped('freeplay', 5)) { PR.addStars(1, 'free'); DB.ui.flyStar(area); }
+    el.innerHTML = '<div class="again"><span class="emo">🏆</span><button class="go big" data-again>🔁 Ξανά!</button></div>';
+    el.querySelector('[data-again]').onclick = () => freePlay(g);
+    R().say(['Τέλεια! Ξανά;', 'Είσαι αστέρι! Πάμε άλλο ένα;', 'Μπαμ! Άλλη μία;'][Math.floor(Math.random() * 3)]);
+  }
+
+  const INTRO = { maze: 'Βοήθησέ με να βρω την μπαταρία! Πρόσεχε τους μετεωρίτες!', simon: 'Θα κάνω κινήσεις. Μπορείς να τις θυμηθείς;', workshop: 'Βάλε κάρτες στη σειρά και πάτα Πάμε. Εσύ με προγραμματίζεις!', pairs: '', whack: '', sortg: '', hoopg: '' };
   function initModes() {
     document.querySelectorAll('.mode').forEach(m => m.addEventListener('click', () => {
       if (DB.app.busy) return;
       document.querySelectorAll('.mode').forEach(x => x.setAttribute('aria-pressed', x === m));
-      ['workshop', 'maze', 'simon'].forEach(g => { $('#g-' + g).hidden = g !== m.dataset.g; });
-      V.sfx.tap(); R().say(INTRO[m.dataset.g]);
+      const g = m.dataset.g;
+      ['workshop', 'maze', 'simon', 'pairs', 'whack', 'sortg', 'hoopg'].forEach(x => { $('#g-' + x).hidden = x !== g; });
+      V.sfx.tap(); freeTok++;
+      if (['pairs', 'whack', 'sortg', 'hoopg'].includes(g)) freePlay(g); else R().say(INTRO[g]);
     }));
   }
 
